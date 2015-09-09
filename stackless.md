@@ -121,11 +121,9 @@ sealed trait Trampoline[+A] {
     }
 }
 
-case class Done[A](a: A)
-  extends Trampoline[A]
+case class Done[A](a: A) extends Trampoline[A]
 
-case class More[A](k: () => Trampoline[A])
-  extends Trampoline[A]
+case class More[A](k: () => Trampoline[A]) extends Trampoline[A]
 ```
 
 `runT`は再帰的に次のステップを呼び出し, 結果を得ます.
@@ -205,8 +203,7 @@ def flatMap[B](f: A => Trampoline[B]): Trampoline[B] =
 ここでは`Trampoline`にコンストラクタを追加します.
 
 ```scala
-case class FlatMap[A, B](sub: Trampoline[A], k: A => Trampoline[B])
-  extends Trampoline[B]
+case class FlatMap[A, B](sub: Trampoline[A], k: A => Trampoline[B]) extends Trampoline[B]
 ```
 
 `flatMap`, `map`は次のように定義できます.
@@ -214,8 +211,7 @@ case class FlatMap[A, B](sub: Trampoline[A], k: A => Trampoline[B])
 ```scala
 def flatMap[B](f: A => Trampoline[B]): Trampoline[B] =
   this match {
-    case a FlatMap g =>
-      FlatMap(a, (x: Any) => g(x) flatMap f)
+    case a FlatMap g => FlatMap(a, (x: Any) => g(x) flatMap f)
     case x => FlatMap(x, f)
   }
 
@@ -335,7 +331,7 @@ trait Functor[F[_]] {
 `Function0Functor`は次のような定義になります.
 
 ```scala
-implicit val f0Functor =
+implicit val f0Functor: Functor[Function0] =
   new Functor[Function0] {
     def map[A, B](a: () => A)(f: A => B): () => B =
       () => f(a())
@@ -386,11 +382,9 @@ type BinTree[+A] = Free[Pair, A]
 ```scala
 sealed trait StateF[S, +A]
 
-case class Get[S, A](f: S => A)
-  extends State[S, A]
+case class Get[S, A](f: S => A) extends StateF[S, A]
 
-case class Put[S, A](s: S, a: A)
-  extends State[S, A]
+case class Put[S, A](s: S, a: A) extends StateF[S, A]
 ```
 
 ここで大切なことは関数のモデルを`case class`と`object`表現することです.
@@ -398,7 +392,7 @@ case class Put[S, A](s: S, a: A)
 次にFunctorを定義します.
 
 ```scala
-implicit def statefFun[S] =
+implicit def statefFunctor[S]: Functor[({ type F[A] = StateF[S, A] })#F] =
   new Functor[({ type F[A] = StateF[S, A] })#F] {
     def map[A, B](m: StateF[S, A])(f: A => B): StateF[S, B] =
       m match {
@@ -413,8 +407,7 @@ Functor則に気を付ければ自然と`map`を定義することが可能で�
 `StateF`を使った`FreeState`の定義は以下のようになります.
 
 ```scala
-type FreeState[S, +A] =
-  Free[({ type F[B] = StateF[S, B] })#F, A]
+type FreeState[S, +A] = Free[({ type F[+B] = StateF[S, B] })#F, A]
 ```
 
 `FreeState`を返す関数として, 次のようなものが定義出来ます.
@@ -424,12 +417,10 @@ def pureState[S, A](a: A): FreeState[S, A] =
   Done[({ type F[+B] = StateF[S, B] })#F, A](a)
 
 def getState[S]: FreeState[S, S] =
-  More[({ type F[+B] = StateF[S, B] })#F, S](
-    Get(s => Done[({ type F[+B] = StateF[S, B] })#F, S](s)))
+  More[({ type F[+B] = StateF[S, B] })#F, S](Get(s => pureState(s)))
 
 def setState[S](s: S): FreeState[S, Unit] =
-  More[({ type F[+B] = StateF[S, B] })#F, Unit](
-    Put(s, Done[({ type F[+B] = StateF[S, B] })#F, Unit](())))
+  More[({ type F[+B] = StateF[S, B] })#F, Unit](Put(s, pureState(())))
 ```
 
 そして, 最初に定義した関数のモデルの実装は以下のように定義されます.

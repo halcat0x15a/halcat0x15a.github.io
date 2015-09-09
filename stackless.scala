@@ -81,14 +81,11 @@ object _2 {
 
   }
 
-  case class Done[A](a: A)
-      extends Trampoline[A]
+  case class Done[A](a: A) extends Trampoline[A]
 
-  case class More[A](k: () => Trampoline[A])
-      extends Trampoline[A]
+  case class More[A](k: () => Trampoline[A]) extends Trampoline[A]
 
-  case class FlatMap[A, B](sub: Trampoline[A], k: A => Trampoline[B])
-      extends Trampoline[B]
+  case class FlatMap[A, B](sub: Trampoline[A], k: A => Trampoline[B]) extends Trampoline[B]
 
   def factorial(n: BigInt): Trampoline[BigInt] =
     if (n <= 1)
@@ -178,5 +175,38 @@ object _4 {
   type Pair[+A] = (A, A)
 
   type BinTree[+A] = Free[Pair, A]
+
+  sealed trait StateF[S, +A]
+
+  case class Get[S, A](f: S => A) extends StateF[S, A]
+
+  case class Put[S, A](s: S, a: A) extends StateF[S, A]
+
+  implicit def statefFunctor[S]: Functor[({ type F[A] = StateF[S, A] })#F] =
+    new Functor[({ type F[A] = StateF[S, A] })#F] {
+      def map[A, B](m: StateF[S, A])(f: A => B): StateF[S, B] =
+        m match {
+          case Get(g) => Get((s: S) => f(g(s)))
+          case Put(s, a) => Put(s, f(a))
+        }
+    }
+
+  type FreeState[S, +A] = Free[({ type F[+B] = StateF[S, B] })#F, A]
+
+  def pureState[S, A](a: A): FreeState[S, A] =
+    Done[({ type F[+B] = StateF[S, B] })#F, A](a)
+
+  def getState[S]: FreeState[S, S] =
+    More[({ type F[+B] = StateF[S, B] })#F, S](Get(s => pureState(s)))
+
+  def setState[S](s: S): FreeState[S, Unit] =
+    More[({ type F[+B] = StateF[S, B] })#F, Unit](Put(s, pureState(())))
+
+  def evalS[S, A](s: S, t: FreeState[S, A]): A =
+    t.resume match {
+      case Left(Get(f)) => evalS(s, f(s))
+      case Left(Put(n, a)) => evalS(n, a)
+      case Right(a) => a
+    }
 
 }
