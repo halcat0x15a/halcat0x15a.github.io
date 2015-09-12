@@ -29,7 +29,7 @@ core.logicによるappendの例をみてみましょう.
   ([[h . t] _ [h . t']] (append t y t')))
 ```
 
-Prologのコードとよく似ていることがわかります.
+Prologのコードとよく似ていることがわかりますね?
 
 ```prolog
 append([], L, L).
@@ -107,13 +107,7 @@ user> (run* [q]
 
 Prologとは違い, ゴールの内側のみ有効な変数を定義することが可能です.
 
-値が未確定な論理変数は, 各結果ごとに \_0, \_1, \_2, ... と表示されます.
-
-### ==, s#, u# 
-
-`==`は単純なユニフィケーションを行います.
-
-`s#`は無条件に成功し, `u#`は無条件に失敗します.
+値が未確定な論理変数は, 各結果ごとに _0, _1, _2 と表示されます.
 
 ### project
 
@@ -136,7 +130,7 @@ user> (run 1 [q] (factorial 5 q))
 (120)
 ```
 
-もし, その論理変数の値が取り出せない場合は, 論理変数がそのまま渡されます.
+もし, 論理変数に値が束縛されていない場合は, 論理変数がそのまま渡されます.
 
 ```clojure
 user> (run 1 [q] (factorial q 5))
@@ -147,7 +141,7 @@ ClassCastException clojure.core.logic.LVar cannot be cast to java.lang.Number  c
 
 core.logicにはPrologのcutに相当するものは存在しません.
 
-そのかわり, 3つの制御が存在します.
+そのかわり, 3つの制御構造が存在します.
 
 ### conde
 
@@ -202,41 +196,43 @@ user> (run* [q]
 
 これらの制御構造が扱えれば, 大抵の述語を定義することが可能でしょう.
 
-## 関係プログラミング
+## データベース
 
-`defrel`により関係を定義し, `fact`によってデータベースを構築します.
+`clojure.core.logic.pldb`を使うことで関係データベースを扱えます.
+
+`db-rel`により関係を定義し, `db`によってデータベースを構築します.
 
 ```clojure
-(defrel language p)
-(fact language 'Java)
-(fact language 'Prolog)
-(fact language 'Clojure)
-(fact language 'Scheme)
+(db-rel language p)
+(db-rel jvm p)
+(db-rel logic p)
+(db-rel library p p')
 
-(defrel jvm p)
-(fact jvm 'Java)
-(fact jvm 'Clojure)
-
-(defrel logic p)
-(fact logic 'Prolog)
-(fact logic 'core.logic)
-(fact logic 'miniKanren)
-
-(defrel library p p')
-(fact library 'Clojure 'core.logic)
-(fact library 'Scheme 'miniKanren)
+(def facts
+  (db [language 'Java]
+      [language 'Prolog]
+      [language 'Clojure]
+      [language 'Scheme]
+      [jvm 'Java]
+      [jvm 'Clojure]
+      [logic 'Prolog]
+      [logic 'core.logic]
+      [logic 'miniKanren]
+      [library 'Clojure 'core.logic]
+      [library 'Scheme 'miniKanren]))
 ```
 
-他の述語と同じ様に使えます.
+定義した関係は他の述語と同じ様に使えます.
 
 ```clojure
-user> (run* [q]
-        (fresh [a b]
-          (language a)
-          (jvm a)
-          (logic b)
-          (library a b)
-          (== q [a b])))
+user> (with-db facts
+        (run* [q]
+          (fresh [a b]
+            (language a)
+            (jvm a)
+            (logic b)
+            (library a b)
+            (== q [a b]))))
 ([Clojure core.logic])
 ```
 
@@ -271,11 +267,12 @@ user> (time (run* [q] (fib 25 q)))
 ```prolog
 fib(0, 1).
 fib(1, 1).
-fib(M, N) :- X1 is M - 1,
-             X2 is M - 2,
-	     fib(X1, Y1),
-	     fib(X2, Y2),
-	     N is Y1 + Y2.
+fib(M, N) :-
+  X1 is M - 1,
+  X2 is M - 2,
+  fib(X1, Y1),
+  fib(X2, Y2),
+  N is Y1 + Y2.
 ```
 
 ```prolog
@@ -317,7 +314,7 @@ user> (time (run 1 [q] (fib' 25 q)))
 
 ## DCG
 
-Prologには限定節文法(Definite Clause Grammar)と呼ばれる構文解析のための機能があり, core.logicにもDCGが実験的に実装されています.
+Prologには限定節文法(Definite Clause Grammar)と呼ばれる構文解析のための機能があり, core.logicにも`clojure.core.logic.dcg`としてDCGが実験的に実装されています.
 
 ```clojure
 (def-->e tuple [q]
@@ -352,8 +349,7 @@ user> (run* [q]
 
 ```clojure
 (def-->e number [n]
-  ([_] [n]
-       (!dcg (project [n] (== (number? n) true)))))
+  ([_] [n] (!dcg (project [n] (== (number? n) true)))))
 
 (def-->e term [t]
   ([_] (fresh [x y]
@@ -364,18 +360,18 @@ user> (run* [q]
          (!dcg (project [x y] (== t (/ y x))))))
   ([_] (number t)))
 
-(def-->e expression [e]
+(def-->e expr [e]
   ([_] (fresh [x y]
-         (term x) '[+] (expression y)
+         (term x) '[+] (expr y)
          (!dcg (project [x y] (== e (+ y x))))))
   ([_] (fresh [x y]
-         (term x) '[-] (expression y)
+         (term x) '[-] (expr y)
          (!dcg (project [x y] (== e (- y x))))))
   ([_] (term e)))
 
 (defn eval' [e]
   (run* [q]
-    (expression q (reverse e) [])))
+    (expr q (reverse e) [])))
 ```
 
 同じ優先度の演算が並んだ場合の計算順序を正しくするため, 入力を反転し, オペランドの位置も反転させています.
@@ -401,6 +397,6 @@ core.logicには基本的な論理プログラミングの機能だけでなく,
 
 ライブラリとして実装され, JVMやJavaScript上で動作するので, サーバーやデスクトップ, Web上で動作するプログラムに簡単に組込むことが可能です.
 
-Clojureで論理プログラミングを簡素な構文で実現するために, 多くの機能がマクロによって定義されています.
+また, Clojureで論理プログラミングを簡素な構文で実現するために, 多くの機能がマクロによって定義されています.
 
-それ故に, エラーが追い辛く, Clojureのマクロと組合せ難いという欠点があります.
+それ故に, エラーが追い辛く, Clojureの他のマクロと組合せ難いという欠点があります.
