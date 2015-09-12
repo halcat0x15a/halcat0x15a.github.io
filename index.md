@@ -18,6 +18,15 @@ title: halcat.org
 
 <div class="panel panel-default">
   <div class="panel-heading">
+    <a href="typelevel_fizzbuzz.html"><h3 class="panel-title">Typelevel FizzBuzz in Scala</h3></a>
+  </div>
+  <div class="panel-body">
+    Scalaの型レベルプログラミングをFizzBuzzにより解説します.
+  </div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading">
     <a href="evaluator.html"><h3 class="panel-title">Lisp on Clojure</h3></a>
   </div>
   <div class="panel-body">
