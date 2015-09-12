@@ -1,5 +1,5 @@
 (ns evaluator.core
-  (:require [cljs.reader :as reader]))
+  (:refer-clojure :exclude [eval]))
 
 (defn self-evaluating? [exp]
   (or (true? exp)
@@ -11,7 +11,7 @@
 
 (defn eval [env exp]
   (cond (self-evaluating? exp) exp
-        (symbol? exp) (get @env (munge (str exp)))
+        (symbol? exp) (get @env exp)
         (seq? exp) (eval-form env exp)))
 
 (defmethod eval-form 'quote [env [_ quotation]] quotation)
@@ -22,7 +22,7 @@
     (eval env alternative)))
 
 (defmethod eval-form 'define [env [_ variable value]]
-  (swap! env #(assoc % (str variable) (eval env value))))
+  (swap! env #(assoc % variable (eval env value))))
 
 (defmethod eval-form 'begin [env [& exps]]
   (->> exps (map #(eval env %)) last))
@@ -36,11 +36,11 @@
 (deftype Lambda [env parameters body]
   Procedure
   (app [lambda args]
-    (eval (atom (merge @env (zipmap (map (comp munge str) parameters) args))) body)))
+    (eval (atom (merge @env (zipmap parameters args))) body)))
 
 (defmethod eval-form 'lambda [env [_ parameters body]]
   (Lambda. env parameters body))
 
 (extend-protocol Procedure
-  function
+  clojure.lang.IFn
   (app [f args] (apply f args)))

@@ -36,7 +36,7 @@
 (deftype Lambda [env parameters body]
   Procedure
   (app [lambda args]
-    (eval (atom (merge @env (zipmap parameters args))) body)))
+    (eval (atom (merge @env (zipmap (map (comp munge str) parameters) args))) body)))
 
 (defmethod eval-form 'lambda [env [_ parameters body]]
   (Lambda. env parameters body))

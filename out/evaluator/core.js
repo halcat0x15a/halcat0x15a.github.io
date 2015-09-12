@@ -34,42 +34,42 @@ return null;
 }
 }
 });
-cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"quote","quote",1377916282,null),(function (env,p__5791){
-var vec__5792 = p__5791;
-var _ = cljs.core.nth.call(null,vec__5792,(0),null);
-var quotation = cljs.core.nth.call(null,vec__5792,(1),null);
+cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"quote","quote",1377916282,null),(function (env,p__5617){
+var vec__5618 = p__5617;
+var _ = cljs.core.nth.call(null,vec__5618,(0),null);
+var quotation = cljs.core.nth.call(null,vec__5618,(1),null);
 return quotation;
 }));
-cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"if","if",1181717262,null),(function (env,p__5793){
-var vec__5794 = p__5793;
-var _ = cljs.core.nth.call(null,vec__5794,(0),null);
-var predicate = cljs.core.nth.call(null,vec__5794,(1),null);
-var consequent = cljs.core.nth.call(null,vec__5794,(2),null);
-var alternative = cljs.core.nth.call(null,vec__5794,(3),null);
+cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"if","if",1181717262,null),(function (env,p__5619){
+var vec__5620 = p__5619;
+var _ = cljs.core.nth.call(null,vec__5620,(0),null);
+var predicate = cljs.core.nth.call(null,vec__5620,(1),null);
+var consequent = cljs.core.nth.call(null,vec__5620,(2),null);
+var alternative = cljs.core.nth.call(null,vec__5620,(3),null);
 if(cljs.core.truth_(evaluator.core.eval.call(null,env,predicate))){
 return evaluator.core.eval.call(null,env,consequent);
 } else {
 return evaluator.core.eval.call(null,env,alternative);
 }
 }));
-cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"define","define",-366059178,null),(function (env,p__5796){
-var vec__5797 = p__5796;
-var _ = cljs.core.nth.call(null,vec__5797,(0),null);
-var variable = cljs.core.nth.call(null,vec__5797,(1),null);
-var value = cljs.core.nth.call(null,vec__5797,(2),null);
-return cljs.core.swap_BANG_.call(null,env,((function (vec__5797,_,variable,value){
-return (function (p1__5795_SHARP_){
-return cljs.core.assoc.call(null,p1__5795_SHARP_,[cljs.core.str(variable)].join(''),evaluator.core.eval.call(null,env,value));
-});})(vec__5797,_,variable,value))
+cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"define","define",-366059178,null),(function (env,p__5622){
+var vec__5623 = p__5622;
+var _ = cljs.core.nth.call(null,vec__5623,(0),null);
+var variable = cljs.core.nth.call(null,vec__5623,(1),null);
+var value = cljs.core.nth.call(null,vec__5623,(2),null);
+return cljs.core.swap_BANG_.call(null,env,((function (vec__5623,_,variable,value){
+return (function (p1__5621_SHARP_){
+return cljs.core.assoc.call(null,p1__5621_SHARP_,[cljs.core.str(variable)].join(''),evaluator.core.eval.call(null,env,value));
+});})(vec__5623,_,variable,value))
 );
 }));
-cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"begin","begin",1321497208,null),(function (env,p__5799){
-var vec__5800 = p__5799;
-var exps = cljs.core.nthnext.call(null,vec__5800,(0));
-return cljs.core.last.call(null,cljs.core.map.call(null,((function (vec__5800,exps){
-return (function (p1__5798_SHARP_){
-return evaluator.core.eval.call(null,env,p1__5798_SHARP_);
-});})(vec__5800,exps))
+cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"begin","begin",1321497208,null),(function (env,p__5625){
+var vec__5626 = p__5625;
+var exps = cljs.core.nthnext.call(null,vec__5626,(0));
+return cljs.core.last.call(null,cljs.core.map.call(null,((function (vec__5626,exps){
+return (function (p1__5624_SHARP_){
+return evaluator.core.eval.call(null,env,p1__5624_SHARP_);
+});})(vec__5626,exps))
 ,exps));
 }));
 
@@ -94,14 +94,14 @@ throw cljs.core.missing_protocol.call(null,"Procedure.app",f);
 }
 });
 
-cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Keyword(null,"default","default",-1987822328),(function (env,p__5804){
-var vec__5805 = p__5804;
-var operator = cljs.core.nth.call(null,vec__5805,(0),null);
-var operands = cljs.core.nthnext.call(null,vec__5805,(1));
-return evaluator.core.app.call(null,evaluator.core.eval.call(null,env,operator),cljs.core.map.call(null,((function (vec__5805,operator,operands){
-return (function (p1__5803_SHARP_){
-return evaluator.core.eval.call(null,env,p1__5803_SHARP_);
-});})(vec__5805,operator,operands))
+cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Keyword(null,"default","default",-1987822328),(function (env,p__5630){
+var vec__5631 = p__5630;
+var operator = cljs.core.nth.call(null,vec__5631,(0),null);
+var operands = cljs.core.nthnext.call(null,vec__5631,(1));
+return evaluator.core.app.call(null,evaluator.core.eval.call(null,env,operator),cljs.core.map.call(null,((function (vec__5631,operator,operands){
+return (function (p1__5629_SHARP_){
+return evaluator.core.eval.call(null,env,p1__5629_SHARP_);
+});})(vec__5631,operator,operands))
 ,operands));
 }));
 
@@ -118,7 +118,7 @@ evaluator.core.Lambda.prototype.evaluator$core$Procedure$ = true;
 evaluator.core.Lambda.prototype.evaluator$core$Procedure$app$arity$2 = (function (lambda,args){
 var self__ = this;
 var lambda__$1 = this;
-return evaluator.core.eval.call(null,cljs.core.atom.call(null,cljs.core.merge.call(null,cljs.core.deref.call(null,self__.env),cljs.core.zipmap.call(null,self__.parameters,args))),self__.body);
+return evaluator.core.eval.call(null,cljs.core.atom.call(null,cljs.core.merge.call(null,cljs.core.deref.call(null,self__.env),cljs.core.zipmap.call(null,cljs.core.map.call(null,cljs.core.comp.call(null,cljs.core.munge,cljs.core.str),self__.parameters),args))),self__.body);
 });
 
 evaluator.core.Lambda.getBasis = (function (){
@@ -137,11 +137,11 @@ evaluator.core.__GT_Lambda = (function evaluator$core$__GT_Lambda(env,parameters
 return (new evaluator.core.Lambda(env,parameters,body));
 });
 
-cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"lambda","lambda",157104302,null),(function (env,p__5806){
-var vec__5807 = p__5806;
-var _ = cljs.core.nth.call(null,vec__5807,(0),null);
-var parameters = cljs.core.nth.call(null,vec__5807,(1),null);
-var body = cljs.core.nth.call(null,vec__5807,(2),null);
+cljs.core._add_method.call(null,evaluator.core.eval_form,new cljs.core.Symbol(null,"lambda","lambda",157104302,null),(function (env,p__5632){
+var vec__5633 = p__5632;
+var _ = cljs.core.nth.call(null,vec__5633,(0),null);
+var parameters = cljs.core.nth.call(null,vec__5633,(1),null);
+var body = cljs.core.nth.call(null,vec__5633,(2),null);
 return (new evaluator.core.Lambda(env,parameters,body));
 }));
 (evaluator.core.Procedure["function"] = true);

@@ -19,7 +19,7 @@ Clojureの特徴を簡単なLisp評価機を作る過程で紹介します.
 (assert (= (eval env 'foo) 12))
 ```
 
-この例は`env`の元で関数`double`と`foo`を定義し, `assert`により`foo`の値が12であることを確認しています.
+この例は`env`の元で`double`と`foo`を定義し, `assert`により`foo`の値が12であることを確認しています.
 
 ## Atom
 
@@ -109,7 +109,7 @@ Multimethodを用いることで`eval`を変更することなく制御構造を
 
 (defn eval [env exp]
   (cond (self-evaluating? exp) exp
-        (symbol? exp) (@env exp)
+        (symbol? exp) (get @env exp)
         (seq? exp) (eval-form env exp)))
 ```
 
@@ -261,7 +261,7 @@ JavaScriptで動作させるには次のように書き換える必要があり�
 
 ```clojure
 (extend-protocol Procedure
-  js/Function
+  function
   (app [f args] (apply f args)))
 ```
 
