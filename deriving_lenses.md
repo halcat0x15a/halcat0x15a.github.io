@@ -1,9 +1,9 @@
 ---
 layout: default
-title: Deriving Lenses with Metaprogramming
+title: Lensの導出とメタプログラミング
 ---
 
-# Deriving Lenses with Metaprogramming
+# Lensの導出とメタプログラミング
 
 Java, Scala, Haskellを使用してLens導出を試み, 各言語のメタプログラミングを紹介していきます.
 
