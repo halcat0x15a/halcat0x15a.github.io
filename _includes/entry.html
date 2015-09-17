@@ -1,12 +1,8 @@
 <div class="panel panel-default">
   <div class="panel-heading">
     <a href="{{ include.ref }}"><h3 class="panel-title">{{ include.title }}</h3></a>
-    {% assign tags = include.tags | split: "," %}
-    {% for tag in tags %}
-    <span class="label label-default">{{ tag }}</span>
-    {% endfor %}
   </div>
   <div class="panel-body">
-    {{ include.desc }}
+    <p>{{ include.desc }}</p>
   </div>
 </div>
