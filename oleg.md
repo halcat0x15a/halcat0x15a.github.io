@@ -72,7 +72,7 @@ Control-channelに基づく実装は限定継続を使います
 
 
 
-`msplit`は最初の解を計算し残りの計算を中断します
+`msplit`は最初の解を計算し残りの計算を停止します
 
 ```haskell
 msplit :: (Monad m, LogicT t, MonadPlus (t m)) => t m a -> t m (Maybe (a, (t m a)))
@@ -588,7 +588,7 @@ reflect r = case r of
   Nothing -> mzero
   Just (a, tmr) -> return a `mplus` tmr
 
-rr tm = msplit m >>= reflect
+rr tm = msplit tm >>= reflect
 ```
 
 `rr tm`は`tm`と同じ型を持ちます
