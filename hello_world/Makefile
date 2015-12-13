@@ -38,4 +38,4 @@ hs.out: Main.hs
 	rm Main.o Main.hi
 
 clean:
-	rm -f *.out *.jar *.exe
+	rm *.out *.jar *.exe
