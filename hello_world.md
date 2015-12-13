@@ -212,17 +212,16 @@ object Main extends App {
 ## Haskell
 
 ```hs
-import Control.Monad (forM_)
-
-fizzbuzz :: Int -> String
-fizzbuzz n
-  | n `mod` 15 == 0 = "FizzBuzz"
-  | n `mod`  3 == 0 = "Fizz"
-  | n `mod`  5 == 0 = "Buzz"
-  | otherwise       = show n
+import Data.Foldable (for_)
 
 main :: IO ()
-main = forM_ [1..100] $ putStrLn . fizzbuzz
+main = for_ [1..100] $ putStrLn . fizzbuzz
+  where
+    fizzbuzz n
+      | n `mod` 15 == 0 = "FizzBuzz"
+      | n `mod`  3 == 0 = "Fizz"
+      | n `mod`  5 == 0 = "Buzz"
+      | otherwise       = show n
 ```
 
 ## Python
@@ -265,11 +264,9 @@ end
 #include <stdio.h>
 
 int main() {
-  puts("0");
-  puts("1");
-  long buf[50] = {0, 1};
-  for (int i = 2; i < 50; i++) {
-    buf[i] = buf[i - 1] + buf[i - 2];
+  long buf[50];
+  for (int i = 0; i < 50; i++) {
+    buf[i] = i < 2 ? i : buf[i - 1] + buf[i - 2];
     printf("%ld\n", buf[i]);
   }
   return 0;
@@ -284,11 +281,13 @@ package main
 import "fmt"
 
 func main() {
-    fmt.Println(0)
-    fmt.Println(1)
-    var buf = [50]int{0, 1}
-    for i := 2; i < 50; i++ {
-        buf[i] = buf[i - 1] + buf[i - 2]
+    var buf = make([]int, 50)
+    for i := range buf {
+        if i < 2 {
+            buf[i] = i
+        } else {
+            buf[i] = buf[i - 1] + buf[i - 2]
+        }
         fmt.Println(buf[i])
     }
 }
@@ -298,12 +297,12 @@ func main() {
 
 ```cpp
 #include <iostream>
+#include <array>
 
 int main() {
-  std::cout << 0 << std::endl << 1 << std::endl;
-  long buf[50] = {0, 1};
-  for (int i = 2; i < 50; i++) {
-    buf[i] = buf[i - 1] + buf[i - 2];
+  std::array<long, 50> buf;
+  for (int i = 0; i < buf.size(); i++) {
+    buf[i] = i < 2 ? i : buf[i - 1] + buf[i - 2];
     std::cout << buf[i] << std::endl;
   }
   return 0;
@@ -315,13 +314,9 @@ int main() {
 ```java
 public class Main {
     public static void main(String[] args) {
-        System.out.println(0);
-        System.out.println(1);
         long[] buf = new long[50];
-        buf[0] = 0;
-        buf[1] = 1;
-        for (int i = 2; i < 50; i++) {
-            buf[i] = buf[i - 1] + buf[i - 2];
+        for (int i = 0; i < buf.length; i++) {
+            buf[i] = i < 2 ? i : buf[i - 1] + buf[i - 2];
             System.out.println(buf[i]);
         }
     }
@@ -335,14 +330,10 @@ class Program
 {
     static void Main()
     {
-        System.Console.WriteLine(0);
-        System.Console.WriteLine(1);
         var buf = new long[50];
-        buf[0] = 0;
-        buf[1] = 1;
-        for (int i = 2; i < 50; i++)
+        for (int i = 0; i < buf.Length; i++)
         {
-            buf[i] = buf[i - 1] + buf[i - 2];
+            buf[i] = i < 2 ? i : buf[i] = buf[i - 1] + buf[i - 2];
             System.Console.WriteLine(buf[i]);
         }
     }
@@ -361,33 +352,29 @@ object Main extends App {
 ## Haskell
 
 ```hs
-import Control.Monad (forM_)
-
-fib :: [Int]
-fib = 0 : 1 : zipWith (+) fib (tail fib)
+import Data.Foldable (for_)
 
 main :: IO ()
-main = forM_ (take 50 fib) (putStrLn . show)
+main = for_ (take 50 fib) (putStrLn . show)
+  where
+    fib = 0 : 1 : zipWith (+) fib (tail fib)
 ```
 
 ## Python
 
 ```python
-print(0)
-print(1)
-buf = [0, 1]
-for i in range(2, 50):
-    buf.append(buf[i - 1] + buf[i - 2])
+buf = []
+for i in range(0, 50):
+    buf.append(i if i < 2 else buf[i - 1] + buf[i - 2])
     print(buf[i])
 ```
 
 ## Ruby
 
 ```ruby
-puts 0, 1
-buf = [0, 1]
-for i in 2...50
-  buf[i] = buf[i - 1] + buf[i - 2]
+buf = []
+for i in 0...50
+  buf[i] = i < 2 ? i : buf[i - 1] + buf[i - 2]
   puts buf[i]
 end
 ```
