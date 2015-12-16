@@ -24,7 +24,7 @@
 (defmethod eval-form 'define [env [_ variable value]]
   (swap! env #(assoc % variable (eval env value))))
 
-(defmethod eval-form 'begin [env [& exps]]
+(defmethod eval-form 'begin [env [_ & exps]]
   (->> exps (map #(eval env %)) last))
 
 (defprotocol Procedure
