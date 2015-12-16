@@ -1,4 +1,4 @@
-(ns logicdb.core
+(ns db.core
   (:refer-clojure :exclude [==])
   (:require [clojure.core.logic :refer :all]
             [clojure.core.logic.pldb :refer :all]))

@@ -1,4 +1,4 @@
-(ns exparser.core
+(ns parser.core
   (:refer-clojure :exclude [==])
   (:require [clojure.core.logic :refer :all]
             [clojure.core.logic.dcg :refer :all]))

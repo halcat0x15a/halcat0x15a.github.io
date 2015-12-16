@@ -1,6 +1,6 @@
-(ns exparser.test
+(ns parser.test
   (:require [clojure.test :refer :all]
-            [exparser.core :refer [eval']]))
+            [parser.core :refer [eval']]))
 
 (deftest evaluation
   (is (= (eval' '[2 + 3 * 5 - 7]) '(10)))

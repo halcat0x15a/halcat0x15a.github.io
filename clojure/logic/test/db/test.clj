@@ -1,9 +1,9 @@
-(ns logicdb.test
+(ns db.test
   (:refer-clojure :exclude [==])
   (:require [clojure.core.logic :refer [run* fresh ==]]
             [clojure.core.logic.pldb :refer [with-db]]
             [clojure.test :refer :all]
-            [logicdb.core :refer :all]))
+            [db.core :refer :all]))
 
 (deftest query
   (is (= (with-db facts
