@@ -5,9 +5,9 @@ title: Hello, world!
 
 # Hello, world!
 
-初歩的なプログラムをいろいろな言語を使って記述していきます.
+初歩的なプログラムをいろいろな言語を使って記述していきます。
 
-Hello worldは標準出力に"Hello, world!"と出力します.
+Hello worldは標準出力に"Hello, world!"と出力します。
 
 ## C
 
@@ -93,7 +93,7 @@ puts "Hello, world!"
 
 # Fizz Buzz
 
-1から100までのFizz Buzzを出力します.
+1から100までのFizz Buzzを出力します。
 
 ## C
 
@@ -256,7 +256,7 @@ end
 
 # Fibonacci numbers
 
-フィボナッチ数列を先頭から50個出力します.
+フィボナッチ数列を先頭から50個出力します。
 
 ## C
 
