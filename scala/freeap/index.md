@@ -5,11 +5,11 @@ title: Free Applicative Functors in Scala
 
 # Free Applicative Functors in Scala
 
-[Free Applicative Functors](http://arxiv.org/abs/1403.0749)をScalaで紹介します.
+[Free Applicative Functors](http://arxiv.org/abs/1403.0749)をScalaで紹介します。
 
 ## Applicative
 
-ApplicativeはMonadをより一般化したものです.
+ApplicativeはMonadをより一般化したものです。
 
 ```scala
 trait Functor[F[_]] {
@@ -23,9 +23,9 @@ trait Applicative[F[_]] extends Functor[F] {
 }
 ```
 
-`ap`は`F`の文脈で`f`を`fa`に適用する関数です.
+`ap`は`F`の文脈で`f`を`fa`に適用する関数です。
 
-`ap`を利用することで任意のarityの関数を適用することができます.
+`ap`を利用することで任意のarityの関数を適用することができます。
 
 ```scala
 def map2[F[_], A, B, C](fa: F[A], fb: F[B])(f: (A, B) => C)(implicit F: Applicative[F]): F[C] =
@@ -35,7 +35,7 @@ def map3[F[_], A, B, C, D](fa: F[A], fb: F[B], fc: F[C])(f: (A, B, C) => D)(impl
   F.ap(fc)(map2(fa, fb)((a, b) => f(a, b, _)))
 ```
 
-これはMonadより軽量な記述を可能にします.
+これはMonadより軽量な記述を可能にします。
 
 ```scala
 for {
@@ -50,7 +50,7 @@ map2(fa, fb)(f)
 
 ## Free Monad
 
-FreeはHaskellではとてもよく知られているデータ構造です.
+FreeはHaskellではとてもよく知られているデータ構造です。
 
 ```scala
 sealed trait Free[F[_], A]
@@ -60,11 +60,11 @@ case class Pure[F[_], A](a: A) extends Free[F, A]
 case class Impure[F[_], A](f: F[Free[F, A]]) extends Free[F, A]
 ```
 
-しかし, Freeで構築した計算の構造は実行するまでわかりません.
+しかし、Freeで構築した計算の構造は実行するまでわかりません。
 
 ## Free Applicative
 
-Free Applicativeには2通りの実装があり, それらが同型であることが証明されています.
+Free Applicativeには2通りの実装があり、それらが同型であることが証明されています。
 
 ```scala
 sealed trait Free[F[_], A]
@@ -74,9 +74,9 @@ case class Pure[F[_], A](a: A) extends Free[F, A]
 case class Apply[F[_], A, B](f: F[B], k: Free[F, B => A]) extends Free[F, A]
 ```
 
-Free MonadがTreeのような構造であることに対し, Free ApplicativeはListのような構造であることがわかります.
+Free MonadがTreeのような構造であることに対し、Free ApplicativeはListのような構造であることがわかります。
 
-`Free`はApplicativeのインスタンスをもちます.
+`Free`はApplicativeのインスタンスをもちます。
 
 ```scala
 implicit def free[F[_]]: Applicative[({ type G[A] = Free[F, A] })#G] =
@@ -95,39 +95,39 @@ implicit def free[F[_]]: Applicative[({ type G[A] = Free[F, A] })#G] =
   }
 ```
 
-`ap`の定義はListの結合演算の定義と類似しています.
+`ap`の定義はListの結合演算の定義と類似しています。
 
 ## Example: Option parser
 
-Free Monadより有用なFree Applicativeの例を紹介します.
+Free Monadより有用なFree Applicativeの例を紹介します。
 
-次のようなコマンドラインツールのオプションパーサ考えます.
+次のようなコマンドラインツールのオプションパーサ考えます。
 
 ```sh
 create_user --username halcat0x15a --fullname SanshiroYoshida --id 346
 ```
 
-`create_user`は`username`, `fullname`, `id`からユーザーを作成します.
+`create_user`は`username`, `fullname`, `id`からユーザーを作成します。
 
 ```scala
 case class User(username: String, fullname: String, id: Int)
 ```
 
-ひとつのオプションは名前とデフォルト値と文字列から値を取得する関数をもちます.
+ひとつのオプションは名前とデフォルト値と文字列から値を取得する関数をもちます。
 
 ```scala
 case class Opt[A](name: String, default: Option[A], reader: String => Option[A])
 ```
 
-`Opt`を`Free`に持ち上げましょう.
+`Opt`を`Free`に持ち上げましょう。
 
-`one`は`F[A]`から`Free[F, A]`を構成します.
+`one`は`F[A]`から`Free[F, A]`を構成します。
 
 ```scala
 def one[F[_], A](fa: F[A]): Free[F, A] = Apply(fa, Pure((a: A) => a))
 ```
 
-これらを用いて, パーサは次のように構築できます.
+これらを用いて、パーサは次のように構築できます。
 
 ```scala
 def username: Free[Opt, String] = one(Opt("username", None, Some[String]))
@@ -137,16 +137,16 @@ def id: Free[Opt, Int] = one(Opt("id", None, s => allCatch.opt(s.toInt)))
 def user: Free[Opt, User] = map3(username, fullname, id)(User)
 ```
 
-Free Monadを用いたDSLに比べ次のような利点があります.
+Free Monadを用いたDSLに比べ次のような利点があります。
 
 * 作用が独立している
 * 解析が可能である
 
 ## Left adjoint
 
-Free ApplicativeはApplicativeの圏から自己関手の圏への忘却関手の左随伴です.
+Free ApplicativeはApplicativeの圏から自己関手の圏への忘却関手の左随伴です。
 
-関手の圏において射は自然変換となります.
+関手の圏において射は自然変換となります。
 
 ```scala
 trait Nat[F[_], G[_]] {
@@ -154,11 +154,11 @@ trait Nat[F[_], G[_]] {
 }
 ```
 
-`Nat[F, G]`は`F`の内部構造を保ちながら`G`へ変換します.
+`Nat[F, G]`は`F`の内部構造を保ちながら`G`へ変換します。
 
-`one`を使って自己関手の圏の対象`F[A]`をApplicativeの圏の対象`Free[F, A]`に写すことができました.
+`one`を使って自己関手の圏の対象`F[A]`をApplicativeの圏の対象`Free[F, A]`に写すことができました。
 
-`Free`が関手であるということは対象だけでなく射を写すことができます.
+`Free`が関手であるということは対象だけでなく射を写すことができます。
 
 ```scala
 def lift[F[_], G[_]](f: Nat[F, G]): Nat[({ type H[A] = Free[F, A] })#H, ({ type H[A] = Free[G, A] })#H] =
@@ -170,9 +170,9 @@ def lift[F[_], G[_]](f: Nat[F, G]): Nat[({ type H[A] = Free[F, A] })#H, ({ type 
   }
 ```
 
-Free ApplicativeがApplicativeの圏から自己関手の圏への忘却関手の左随伴ということは, Applicativeの圏の対象`Free[F, A]`と`G[A]`の間の射の集合と自己関手の圏の対象`F[A]`と`G[A]`の間の射の集合が同型であることを意味します.
+Free ApplicativeがApplicativeの圏から自己関手の圏への忘却関手の左随伴ということは、Applicativeの圏の対象`Free[F, A]`と`G[A]`の間の射の集合と自己関手の圏の対象`F[A]`と`G[A]`の間の射の集合が同型であることを意味します。
 
-同型写像`raise`と`lower`は次のように定義できます.
+同型写像`raise`と`lower`は次のように定義できます。
 
 ```scala
 def raise[F[_], G[_]](f: Nat[F, G])(implicit G: Applicative[G]): Nat[({ type H[A] = Free[F, A] })#H, G] =
@@ -189,7 +189,7 @@ def lower[F[_], G[_]](f: Nat[({ type H[A] = Free[F, A] })#H, G]): Nat[F, G] =
   }
 ```
 
-`raise`は`Free`の解析に利用されます.
+`raise`は`Free`の解析に利用されます。
 
 ```scala
 def parserDefault: Nat[({ type F[A] = Free[Opt, A] })#F, Option] =
@@ -199,11 +199,11 @@ def allOptions: Nat[({ type F[A] = Free[Opt, A] })#F, Option] =
   raise(new Nat[Opt, ({ type F[A] = List[String] })#F] { def apply[A] = _.name :: Nil })(Monoid.list.applicative)
 ```
 
-`parserDefault`はパーサのオプションのデフォルト値を取得します.
+`parserDefault`はパーサのオプションのデフォルト値を取得します。
 
-`allOptions`はパーサのオプションの名前を全て列挙します.
+`allOptions`はパーサのオプションの名前を全て列挙します。
 
-これらを用いてオプションパーサを実行する関数を作ることができます.
+これらを用いてオプションパーサを実行する関数を作ることができます。
 
 ```scala
 def matchOpt[A](opt: String, value: String, parser: Free[Opt, A]): Option[Free[Opt, A]] =
@@ -226,11 +226,11 @@ def runParser[A](parser: Free[Opt, A], args: List[String]): Option[A] =
   }
 ```
 
-`matchOpt`は`parser`がもつオプションの`name`と一致するものに対して`reader`を適用して値を得ます.
+`matchOpt`は`parser`がもつオプションの`name`と一致するものに対して`reader`を適用して値を得ます。
 
-`runParser`は`matchOpt`を用いて入力をパースし, 入力がない場合は`parserDefault`でオプションのデフォルト値を使います.
+`runParser`は`matchOpt`を用いて入力をパースし、入力がない場合は`parserDefault`でオプションのデフォルト値を使います。
 
-オプションパーサは以下のように動作します.
+オプションパーサは以下のように動作します。
 
 ```scala
 scala> runParser(user, "--username halcat0x15a --fullname SanshiroYoshida --id 346")
@@ -246,4 +246,4 @@ scala> runParser(user, "--fullname SanshiroYoshida --id 346")
 res3: Option[User] = None
 ```
 
-入力が順序不同であることやデフォルト値を使っていることがわかります.
+入力が順序不同であることやデフォルト値を使っていることがわかります。
