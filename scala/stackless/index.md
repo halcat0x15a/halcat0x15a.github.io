@@ -5,7 +5,7 @@ title: スタックレスScala
 
 # スタックレスScala
 
-[Stackless Scala With Free Monads](http://days2012.scala-lang.org/sites/days2012/files/bjarnason_trampolines.pdf)を参考にTrampolineやそれを抽象化したFreeを紹介します.
+[Stackless Scala With Free Monads](http://days2012.scala-lang.org/sites/days2012/files/bjarnason_trampolines.pdf)を参考にTrampolineやそれを抽象化したFreeを紹介します。
 
 ## Abstract
 
@@ -15,7 +15,7 @@ Scalaコンパイラの末尾再帰除去は自分自身を呼び出すメソッ
 
 ## Introduction
 
-Scalaでプログラムを書いていると`java.lang.StackOverflowError`の経験があることでしょう。
+Scalaでプログラムを書いて`java.lang.StackOverflowError`に遭遇した経験があることでしょう。
 
 ```scala
 def factorial(n: BigInt): BigInt =
@@ -433,3 +433,9 @@ def evalS[S, A](s: S, t: FreeState[S, A]): A =
 `evalS`は末尾で自身を呼び出しており、コンパイラによって最適化されます。
 
 このように、`resume`を使って計算を進めることでスタックを消費しない関数を定義することが可能です。
+
+## Conclusions
+
+スタックの代わりにヒープを使うことで再帰呼び出しを行うTrampolineを紹介しました。
+
+Freeに一般化することで、その利点を他のモナドで生かすことができます。
