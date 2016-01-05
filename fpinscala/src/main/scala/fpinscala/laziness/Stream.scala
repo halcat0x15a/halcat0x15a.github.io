@@ -79,12 +79,8 @@ sealed trait Stream[+A] {
 
   def utake(n: Int): Stream[A] =
     Stream.unfold((this, n)) {
-      case (Empty, _) => None
-      case (Cons(head, tail), n) =>
-        if (n > 0)
-          Some((head(), (tail(), n - 1)))
-        else
-          None
+      case (Cons(head, tail), n) if n > 0 => Some((head(), (tail(), n - 1)))
+      case _ => None
     }
 
   def utakeWhile(p: A => Boolean): Stream[A] =
@@ -120,10 +116,10 @@ sealed trait Stream[+A] {
     }
 
   def tails: Stream[Stream[A]] =
-    Stream.unfold(this) {
+    Stream.cons(this, Stream.unfold(this) {
       case Empty => None
-      case cons@Cons(_, tail) => Some((cons, tail()))
-    }
+      case Cons(_, tail) => Some((tail(), tail()))
+    })
 
   /*
   def foldRight[B](b: => B)(f: (A, => B) => B): B =
