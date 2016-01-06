@@ -6,7 +6,7 @@ package object freer {
 
   def leaf[A](a: A): Tree[A] = Pure(a)
 
-  def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Impure((x, y): Pair[Tree[A]], (x: Tree[A]) => x)
+  def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Freer((x, y): Pair[Tree[A]])
 
   def fold[A, B](t: Tree[A])(f: A => B)(g: (B, B) => B): B =
     t match {

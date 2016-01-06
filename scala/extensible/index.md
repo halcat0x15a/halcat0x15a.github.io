@@ -5,7 +5,7 @@ title: Extensible Effects in Scala
 
 # Extensible Effects in Scala
 
-http://okmij.org/ftp/Haskell/extensible/more.pdf
+[Freer Monads, More Extensible Effects](http://okmij.org/ftp/Haskell/extensible/more.pdf)で紹介されるEffモナドをScalaを使って解説します。
 
 ## Free Monad
 
@@ -116,9 +116,20 @@ case class Pure[F[_], A](a: A) extends Freer[F, A]
 case class Impure[F[_], A, B](fa: F[A], k: A => Freer[F, B]) extends Freer[F, B]
 ```
 
-Freeとの違いとして、Impureが`A`を値に持つFreerと`A`からFreerへの関数の組をとるようになります。
+Freeモナドとの違いとして、Impureは`F[A]`と`A => Freer[F, B]`の組みを持つ`Freer[F, B]`になりました。
 
 この変更により、`flatMap`はImpureの場合にFreerモナドの元で関数の合成(Kleisli composition)を行います。
+
+Freeモナドと同じように作用のある計算を記述するには、次のような関数があると便利でしょう。
+
+```scala
+object Freer {
+
+  def apply[F[_], A](ff: F[Freer[F, A]]): Freer[F, A] =
+    Impure(ff, (x: Freer[F, A]) => x)
+
+}
+```
 
 Freerを使ってTreeを表現してみましょう。
 
@@ -129,7 +140,7 @@ type Tree[A] = Freer[Pair, A]
 
 def leaf[A](a: A): Tree[A] = Pure(a)
 
-def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Impure((x, y): Pair[Tree[A]], (x: Tree[A]) => x)
+def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Freer((x, y): Pair[Tree[A]])
 ```
 
 先の例も同様に記述できます。
@@ -215,6 +226,12 @@ sealed trait Freer[F[_], A] {
 case class Pure[F[_], A](a: A) extends Freer[F, A]
 
 case class Impure[F[_], A, B](fa: F[A], k: Arrows[F, A, B]) extends Freer[F, B]
+
+object Freer {
+
+  def apply[F[_], A](fa: F[Freer[F, A]]): Freer[F, A] = Impure(fa, Leaf((a: Freer[F, A]) => a))
+
+}
 ```
 
 これでn回の`flatMap`による合成がO(n)で実行できます。
@@ -350,9 +367,9 @@ type Maybe[A] = Unit
 val tree1: Maybe :+: Tree :+: Void = Inr(Inl((0, 1): Tree[Int]))
 ```
 
-ここからはTreeやMaybeを構成していた型自体にそのモナドの名前を付けることにします。
+Unionの導入に伴いTreeやMaybeを構成する型`F`自体にそのモナドの名前を付けることにします。
 
-この例からわかる通りUnionは冗長な記述を必要とします。
+この例からわかる通り、InlとInrを使って型を合わせる必要があります。
 
 そこで、Unionへ値を埋め込むための型クラスを導入します。
 
@@ -382,6 +399,16 @@ object Member {
 
 左側への埋め込みは`Member.left`が、右側への埋め込みは`Member.right`が行います。
 
+Memberのインスタンスを得るために次のような関数を定義しておくと便利でしょう。
+
+```scala
+object Member {
+
+  def apply[F[_], U <: Union](implicit member: Member[F, U]): Member[F, U] = member
+
+}
+```
+
 先の例でMemberを利用すると次のようになります。
 
 ```scala
@@ -390,14 +417,16 @@ val tree2 = Member[Tree, Maybe :+: Tree :+: Void].inject((0, 1): Tree[Int])
 
 型に合わせて`Inl`と`Inr`を書かずに済むようになりました。
 
-Unionを使うことでFreerは次のように定義できます。
+Unionを使ったFreerをEffと呼ぶことにします。
+
+Effは次のように定義されます。
 
 ```scala
-sealed trait Freer[U <: Union, A] {
+sealed trait Eff[U <: Union, A] {
 
-  def map[B](f: A => B): Freer[U, B] = flatMap(a => Pure(f(a)))
+  def map[B](f: A => B): Eff[U, B] = flatMap(a => Pure(f(a)))
 
-  def flatMap[B](f: A => Freer[U, B]): Freer[U, B] =
+  def flatMap[B](f: A => Eff[U, B]): Eff[U, B] =
     this match {
       case Pure(a) => f(a)
       case Impure(u, g) => Impure(u, g :+ f)
@@ -405,27 +434,38 @@ sealed trait Freer[U <: Union, A] {
 
 }
 
-case class Pure[U <: Union, A](a: A) extends Freer[U, A]
+case class Pure[U <: Union, A](a: A) extends Eff[U, A]
 
-case class Impure[U <: Union, A, B](u: U, f: Arrows[U, A, B]) extends Freer[U, B]
+case class Impure[U <: Union, A, B](u: U, f: Arrows[U, A, B]) extends Eff[U, B]
 ```
 
 `F[_]`を`U <: Union`で置き換えました。
 
 ArrowsとViewにも同様の変更を加えます。
 
+また、Memberを使うことで作用のある計算は次のように構築できます。
+
+```scala
+object Eff {
+
+  def apply[U <: Union, F[_], A](fa: F[Eff[U, A]])(implicit F: Member[F, U]): Eff[U, A] =
+    Impure(F.inject(fa), Leaf((x: Eff[U, A]) => x))
+
+}
+```
+
 これらを用いてTreeモナドは次のように定義されます。
 
 ```scala
-def leaf[U <: Union, A](a: A): Freer[U, A] = Pure(a)
+def leaf[U <: Union, A](a: A)(implicit member: Member[Tree, U]): Eff[U, A] = Pure(a)
 
-def node[U <: Union, A](x: Freer[U, A], y: Freer[U, A])(implicit member: Member[Tree, U]): Freer[U, A] = Freer((x, y): Tree[Freer[U, A]])
+def node[U <: Union, A](x: Eff[U, A], y: Eff[U, A])(implicit member: Member[Tree, U]): Eff[U, A] = Eff((x, y): Tree[Eff[U, A]])
 
-def fold[U <: Union, A, B](t: Freer[Tree :+: U, A])(f: A => B)(g: (B, B) => B): Freer[U, B] =
+def fold[U <: Union, A, B](t: Eff[Tree :+: U, A])(f: A => B)(g: (B, B) => B): Eff[U, B] =
   t match {
     case Pure(a) => Pure(f(a))
     case Impure(u, h) =>
-      def k(t: Tree[Any]): Freer[U, B] =
+      def k(t: Tree[Any]): Eff[U, B] =
         t match {
           case (x, y) =>
             for {
@@ -439,12 +479,12 @@ def fold[U <: Union, A, B](t: Freer[Tree :+: U, A])(f: A => B)(g: (B, B) => B): 
       }
   }
 
-def str[U <: Union, A, B](t: Freer[Tree :+: U, A]): Freer[U, String] = fold(t)(_.toString)((x, y) => s"($x, $y)")
+def str[U <: Union, A, B](t: Eff[Tree :+: U, A]): Eff[U, String] = fold(t)(_.toString)((x, y) => s"($x, $y)")
 ```
 
 `fold`の定義は少し複雑になりました。
 
-`fold`は`Freer[Tree :+: U, A]`から関数`A => B`と`(B, B) => B`を用いて`Freer[U, B]`を構築します。
+`fold`は`Eff[Tree :+: U, A]`から関数`A => B`と`(B, B) => B`を用いて`Eff[U, B]`を構築します。
 
 Pureの場合はその値を関数に適用しPureに包んで返します。
 
@@ -454,32 +494,117 @@ Impureの場合は継続`k`が定義されます。
 
 UnionがInlの場合はその値を`k`に適用し、Inrの場合はその値と`k`からImpureを構築します。
 
-Freerのパラメータ`U`は漸減し、最終的にVoidになります。
+Effのパラメータ`U`は漸減し、最終的にVoidになります。
 
-`Freer[Void, A]`から値を取り出す関数は次のように定義されます。
+`Eff[Void, A]`から値を取り出す関数は次のように定義されます。
 
 ```scala
-object Freer {
+object Eff {
 
-  def run[A](freer: Freer[Void, A]): A =
-    freer match {
+  def run[A](eff: Eff[Void, A]): A =
+    eff match {
       case Pure(a) => a
     }
 
 }
 ```
 
-`Freer[Void, A]`はImpureを値に持たないため、安全に実行されます。
+`Eff[Void, A]`はImpureを値に持たないため、安全に実行されます。
 
-これらの関数は次のように使えます。
+Treeモナドは次のように使えます。
 
 ```scala
 type U = Tree :+: Void
 
+implicit val m = Member[Tree, U]
+
 val r = for {
-  x <- node[U, Int](leaf(0), node(leaf(1), leaf(2)))
-  y <- node[U, Int](leaf(x), leaf(x))
+  x <- node(leaf(0), node(leaf(1), leaf(2)))
+  y <- node(leaf(x), leaf(x))
 } yield y + 1
 
-assert(Freer.run(str(r)) == "((1, 1), ((2, 2), (3, 3)))")
+assert(Eff.run(str(r)) == "((1, 1), ((2, 2), (3, 3)))")
 ```
+
+例`r`の実装は今までと同様です。
+
+`Eff.run`により最終的な結果を取り出しています。
+
+Maybeモナドも同様に定義してみましょう。
+
+```scala
+def nothing[U <: Union, A](implicit member: Member[Maybe, U]): Eff[U, A] = Eff((): Maybe[Eff[U, A]])
+
+def just[U <: Union, A](a: A)(implicit member: Member[Maybe, U]): Eff[U, A] = Pure(a)
+
+def maybe[U <: Union, A](m: Eff[Maybe :+: U, A])(default: A): Eff[U, A] =
+  m match {
+    case Pure(a) => Pure(a)
+    case Impure(Inl(()), _) => Pure(default)
+    case Impure(Inr(u), k) => Impure(u, Leaf((x: Any) => maybe(k(x))(default)))
+  }
+```
+
+`maybe`はImpureがInlを持つならばデフォルト値を返し、Inrを持つならばそのUnion`u`の継続で`maybe`を実行します。
+
+Maybeモナドは次のように使えます。
+
+```scala
+type U = Maybe :+: Void
+
+implicit val m = Member[Maybe, U]
+
+val e1 = for {
+  x <- just(2)
+  y <- just(3)
+} yield x + y
+
+assert(Eff.run(maybe(e1)(-1)) == 5)
+
+val e2 = for {
+  x <- just(2)
+  y <- nothing[U, Int]
+} yield x + y
+
+assert(Eff.run(maybe(e2)(-1)) == -1)
+```
+
+EffでもFreerと同様の例が実行できました。
+
+Effではこれらのモナドを一つのfor式で混合させることができます。
+
+```scala
+def e1[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
+  for {
+    x <- just(0)
+    y <- just(1)
+    z <- node(leaf(x), leaf(y))
+  } yield z + 1
+
+assert(Eff.run(maybe(str(e1[Tree :+: Maybe :+: Void]))("fail")) == "(1, 2)")
+```
+
+ここではTreeモナドとMaybeモナドが混在しています。
+
+実行する際には具体的なUnionを渡す必要があります。
+
+モナドの実行順序は自由に変えることができます。
+
+```scala
+def e2[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
+  for {
+    x <- just(0)
+    y <- nothing[U, Int]
+    z <- node(leaf(x), leaf(y))
+  } yield z + 1
+
+assert(Eff.run(maybe(str(e2[Tree :+: Maybe :+: Void]))("fail")) == "fail")
+
+assert(Eff.run(str(maybe(e2[Maybe :+: Tree :+: Void])(-1))) == "-1")
+```
+
+Effについてまとめると次のようになります。
+
+* 様々なモナドを表現できる
+* 複数の作用を混在させることが可能
+* モナドの合成が高速
