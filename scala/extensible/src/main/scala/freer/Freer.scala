@@ -7,7 +7,7 @@ sealed trait Freer[F[_], A] {
   def flatMap[B](f: A => Freer[F, B]): Freer[F, B] =
     this match {
       case Pure(a) => f(a)
-      case Impure(free, k) => Impure(free, (a: Any) => k(a).flatMap(f))
+      case Impure(fa, k) => Impure(fa, (a: Any) => k(a).flatMap(f))
     }
 
 }
