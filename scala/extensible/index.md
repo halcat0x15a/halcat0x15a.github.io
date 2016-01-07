@@ -5,7 +5,7 @@ title: Extensible Effects in Scala
 
 # Extensible Effects in Scala
 
-[Freer Monads, More Extensible Effects](http://okmij.org/ftp/Haskell/extensible/more.pdf)で紹介されるEffモナドをScalaを使って解説します。
+[Freer Monads, More Extensible Effects](http://okmij.org/ftp/Haskell/extensible/more.pdf)で紹介されるEffモナドをScalaで解説します。
 
 ## Free Monad
 
@@ -43,9 +43,7 @@ case class Pure[F[_], A](a: A) extends Free[F, A]
 case class Impure[F[_], A](ff: F[Free[F, A]]) extends Free[F, A]
 ```
 
-FreeはFunctor`F`と計算値`A`を型パラメータとります。
-
-Pureは`A`の値を、Impureは`F`に`Free[F, A]`を適用した値を持ちます。
+FreeはFunctor`F`と計算値`A`を型パラメータにとります。
 
 `flatMap`はPureならば値を関数に適用し、ImpureならばFunctorを使って`F`の値を`f`に適用します。
 
@@ -90,13 +88,33 @@ val r = for {
 assert(r == node(node(leaf(1), leaf(1)), node(node(leaf(2), leaf(2)), node(leaf(3), leaf(3)))))
 ```
 
-これは`leaf(x)`を`node(leaf(x + 1), leaf(x + 1))`で置換するようなモナド計算です。
+これは`leaf(x)`を`node(leaf(x + 1), leaf(x + 1))`で置換するような計算です。
 
-このように、Freeには様々なモナドを表現する力があります。
+このように、Freeは様々なモナドを表現することができます。
 
 ## Freer Monad
 
-FreeモナドからFunctorの制約をなくしたものがFreerモナドになります。
+FreeモナドからFunctorの制約をなくしたものがFreerモナドです。
+
+これにはCoyonedaと呼ばれる構造をFreeに加えます。
+
+```scala
+trait Coyoneda[F[_], A, B] { self =>
+  val fa: F[A]
+  val k: A => B
+  def map[C](f: B => C): Coyoneda[F, A, C] =
+    new Coyoneda[F, A, C] {
+      val fa: F[A] = self.fa
+      val k: A => C = self.k andThen f
+    }
+}
+```
+
+Coyonedaは任意の`F[_]`と始域`A`と終域`B`を型パラメータにとります。
+
+Coyonedaは`map`を持つためFunctorのインスタンスになります。
+
+つまり、FreeにCoyonedaを加えることで、任意の`F[_]`からモナドを構成できるようになります。
 
 ```scala
 sealed trait Freer[F[_], A] {
@@ -116,11 +134,11 @@ case class Pure[F[_], A](a: A) extends Freer[F, A]
 case class Impure[F[_], A, B](fa: F[A], k: A => Freer[F, B]) extends Freer[F, B]
 ```
 
-Freeモナドとの違いとして、Impureは`F[A]`と`A => Freer[F, B]`の組みを持つ`Freer[F, B]`になりました。
+FreeのImpureは`F`にFreeを適用するため、Freerでは`k`の返り値がFreerになります。
 
-この変更により、`flatMap`はImpureの場合にFreerモナドの元で関数の合成(Kleisli composition)を行います。
+`flatMap`はImpureの場合にFreerモナドの元で関数の合成(Kleisli composition)を行います。
 
-Freeモナドと同じように作用のある計算を記述するには、次のような関数があると便利でしょう。
+Freeと同じように作用のある計算を記述するには、次のような関数があると便利でしょう。
 
 ```scala
 object Freer {
@@ -526,7 +544,7 @@ val r = for {
 assert(Eff.run(str(r)) == "((1, 1), ((2, 2), (3, 3)))")
 ```
 
-例`r`の実装は今までと同様です。
+Treeの例の実装は今までと同様です。
 
 `Eff.run`により最終的な結果を取り出しています。
 
