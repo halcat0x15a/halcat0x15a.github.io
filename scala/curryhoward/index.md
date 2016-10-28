@@ -5,7 +5,7 @@ title: Scalaの合併型と全称型
 
 # Scalaの合併型と全称型
 
-カリー＝ハワード同型対応から合併型と全称型を導きます。
+カリー＝ハワード同型対応から交差型と存在型を用いて合併型と全称型を導きます。
 
 ## Scalaの型と論理
 
@@ -24,13 +24,13 @@ Scalaが標準で備える型と論理の対応は次のようになります。
   </tbody>
 </table>
 
-`Any`は全ての型のスーパータイプで、`Nothing`は全ての型のサブタイプです。
+`Any`は全ての型のスーパータイプ、`Nothing`は全ての型のサブタイプです。
 
 `A with B`は`A`と`B`の交差型を作ります。
 
 `A <:< B`は`A`が`B`のサブタイプであることを表します。
 
-`forSome`は存在型を構築します。
+`forSome`は存在型を構成します。
 
 ## 否定型
 
@@ -40,7 +40,7 @@ Scalaが標準で備える型と論理の対応は次のようになります。
 type Not[A] = A => Nothing
 ```
 
-`Nothing`はボトムなので`Nothing`以外の型では包含関係を満たせないことがわかります。
+`Nothing`はボトム型なので`Nothing`以外の型では包含関係を満たせないことがわかります。
 
 また、Scalaの型システムにおいて`Not[Not[A]] =:= A`が成り立たないことに注意しましょう。
 
@@ -67,11 +67,33 @@ assert(double(2) == "4")
 assert(double("2") == "22")
 ```
 
-`Or`が二重否定を含むため`Not[Not[A]]`とすることでサブタイプにしています。
+`Or`が二重否定を含むため`Not[Not[A]]`とすることで型を合わせています。
 
 この`double`関数は`Int`型と`String`型以外の値を受け付けません。
 
-また、`Either`と違い値をラップする必要がなく効率が良いです。
+また、`Either`に比べ値をラップする必要がなく効率が良いです。
+
+### 構造的部分型
+
+構造的な型に対しても合併型は直感的な包含関係を満たします。
+
+構造的な型に対する交差型は各フィールドの和集合を持つ型をスーパータイプに持ちます。
+
+```scala
+type Foo = { def foo: String; def baz: Int }
+type Bar = { def bar: String; def baz: Int }
+implicitly[Foo with Bar <:< { def foo: String; def bar: String; def baz: Int }]
+```
+
+構造的な型に対する合併型は各フィールドの積集合を持つ型をスーパータイプに持ちます。
+
+```scala
+type Foo = { def foo: String; def baz: Int }
+type Bar = { def bar: String; def baz: Int }
+implicitly[Or[Foo, Bar] <:< Not[Not[{ def baz: Int }]]]
+```
+
+Scalaでは構造的部分型があまり使われませんが、例えばJSONの型付けなどに利用できるかもしれません。
 
 ## 全称型
 
@@ -83,7 +105,7 @@ trait Forall[P[_]] {
 }
 ```
 
-これを用いると任意の型を扱う型を表現できます。
+これを用いると任意の型を扱う値を表現できます。
 
 ```scala
 type Nat[F[_], G[_]] = Forall[({ type H[A] = F[A] => G[A] })#H]
@@ -119,7 +141,7 @@ type Forall[P[_]] = Not[Not[P[A]] forSome { type A }]
 
 この全称型も合併型と同様に二重否定を含みます。
 
-二重否定は継続渡し形式(CPS)により導入できます。
+継続渡し形式(CPS)により二重否定を導入できます。
 
 ```scala
 def opt2list: Nat[Option, List] = k => k(_.toList)

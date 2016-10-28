@@ -43,4 +43,10 @@ package object curryhoward {
 
   def list2opt: Nat[List, Option] = k => k(_.headOption)
 
+  type Foo = { def foo: String; def baz: Int }
+  type Bar = { def bar: String; def baz: Int }
+
+  implicitly[Foo with Bar <:< { def foo: String; def bar: String; def baz: Int }]
+  implicitly[Or[Foo, Bar] <:< Not[Not[{ def baz: Int }]]]
+
 }
