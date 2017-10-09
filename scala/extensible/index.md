@@ -9,9 +9,9 @@ title: Extensible Effects in Scala
 
 ## Free Monad
 
-FreeモナドはFunctorを与えることでモナドになります。
+Free は Functor を与えることでモナドになるデータ型です。
 
-Functorの定義から見ていきましょう。
+Functor の定義から見ていきましょう。
 
 ```scala
 trait Functor[F[_]] {
@@ -19,11 +19,11 @@ trait Functor[F[_]] {
 }
 ```
 
-計算コンテナ`F`に対して`map`という関数が定義されます。
+計算コンテナ `F` に対して `map` という関数が定義されます。
 
-`map`は`F[A]`の計算値`A`を関数`A => B`に適用し`F[B]`を得ます。
+`map` は `F[A]` の計算値 `A` に関数 `A => B` を適用し `F[B]` を得ます。
 
-このFunctorを使ってFreeは次のように定義されます。
+この Functor を使って Free は次のように定義されます。
 
 ```scala
 sealed trait Free[F[_], A] {
@@ -43,13 +43,13 @@ case class Pure[F[_], A](a: A) extends Free[F, A]
 case class Impure[F[_], A](ff: F[Free[F, A]]) extends Free[F, A]
 ```
 
-FreeはFunctor`F`と計算値`A`を型パラメータにとります。
+Free は Functor `F` と計算値 `A` を型パラメータにとります。
 
-`flatMap`はPureならば値を関数に適用し、ImpureならばFunctorを使って`F`の値を`f`に適用します。
+`flatMap` は Pure ならば値を関数に適用し、Impure ならば Functor を使って `F` の計算値に `f` を適用します。
 
-`F`のパラメータの扱いによって様々な再帰的なデータ構造を表現することができます。
+`F` のパラメータの扱いによって様々な再帰的なデータ構造を表現することができます。
 
-Freeを使って二分木を表現してみましょう。
+Free を使って二分木を表現してみましょう。
 
 ```scala
 type Pair[A] = (A, A)
@@ -63,11 +63,11 @@ implicit val PairFunctor: Functor[Pair] =
   }
 ```
 
-Pairは要素をただ二つだけ持つコンテナです。
+Pair は要素をただ二つだけ持つコンテナです。
 
-PairのFunctorはそれぞれの要素を関数に適用し、Pairを構築します。
+Pair の Functor はそれぞれの要素を関数に適用し、Pair を構築します。
 
-PairにFreeを適用することでTreeになります。
+Pair に Free を適用することで Tree になります。
 
 ```scala
 type Tree[A] = Free[Pair, A]
@@ -77,7 +77,7 @@ def leaf[A](a: A): Tree[A] = Pure(a)
 def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Impure((x, y): Pair[Tree[A]])
 ```
 
-Treeはモナドです。
+Tree はモナドになります。
 
 ```scala
 val r = for {
@@ -88,15 +88,17 @@ val r = for {
 assert(r == node(node(leaf(1), leaf(1)), node(node(leaf(2), leaf(2)), node(leaf(3), leaf(3)))))
 ```
 
-これは`leaf(x)`を`node(leaf(x + 1), leaf(x + 1))`で置換するような計算です。
+これは `leaf(x)` を `node(leaf(x + 1), leaf(x + 1))` で置換するような計算です。
 
-このように、Freeは様々なモナドを表現することができます。
+このように、Free は型パラメータ `F` に Functor を与えることで様々なモナドを表現することができます。
+
+例えば、我々が普段使っている List や Option、Either なども表現可能です。
 
 ## Freer Monad
 
-FreeモナドからFunctorの制約をなくしたものがFreerモナドです。
+Free モナドから Functor の制約をなくしたものが Freer モナドです。
 
-これにはCoyonedaと呼ばれる構造をFreeに加えます。
+これには Coyoneda と呼ばれる構造を Free に加えます。
 
 ```scala
 trait Coyoneda[F[_], A, B] { self =>
@@ -110,11 +112,11 @@ trait Coyoneda[F[_], A, B] { self =>
 }
 ```
 
-Coyonedaは任意の`F[_]`と始域`A`と終域`B`を型パラメータにとります。
+Coyoneda は任意の `F[_]` と始域 `A` と終域 `B` を型パラメータにとります。
 
-Coyonedaは`map`を持つためFunctorのインスタンスになります。
+Coyonedaは `map` を持つため Functor のインスタンスになります。
 
-つまり、FreeにCoyonedaを加えることで、任意の`F[_]`からモナドを構成できるようになります。
+つまり、Free に Coyoneda を加えることで、任意の `F[_]` からモナドを構成できるようになります。
 
 ```scala
 sealed trait Freer[F[_], A] {
@@ -134,11 +136,11 @@ case class Pure[F[_], A](a: A) extends Freer[F, A]
 case class Impure[F[_], A, B](fa: F[A], k: A => Freer[F, B]) extends Freer[F, B]
 ```
 
-FreeのImpureは`F`にFreeを適用するため、Freerでは`k`の返り値がFreerになります。
+Free では Impure が `F` に Free を適用することで再帰的な構造を表していたのに対し、Freer では Impure が `F[A]` とその継続の計算として `A => Freer[F, B]` をとるようになります。
 
-`flatMap`はImpureの場合にFreerモナドの元で関数の合成(Kleisli composition)を行います。
+`flatMap` は Impure の場合に Freer モナドの元で関数の合成 (Kleisli composition) を行います。
 
-Freeと同じように作用のある計算を記述するには、次のような関数があると便利でしょう。
+Free と同じように作用のある計算を記述するには、次のような関数があると便利でしょう。
 
 ```scala
 object Freer {
@@ -149,7 +151,7 @@ object Freer {
 }
 ```
 
-Freerを使ってTreeを表現してみましょう。
+Freer を使って Tree を表現してみましょう。
 
 ```scala
 type Pair[A] = (A, A)
@@ -170,7 +172,7 @@ val r = for {
 } yield y + 1
 ```
 
-Treeに対する畳み込み関数を定義し、文字列に変換する関数を定義してみましょう。
+Tree に対する畳み込み関数を定義し、文字列に変換する関数を定義してみましょう。
 
 ```scala
 def fold[A, B](t: Tree[A])(f: A => B)(g: (B, B) => B): B =
@@ -184,11 +186,11 @@ def str[A](t: Tree[A]): String = fold(t)(_.toString)((x, y) => s"($x, $y)")
 assert(str(r) == "((1, 1), ((2, 2), (3, 3)))")
 ```
 
-このように、FreerはFreeより簡単にモナドを得ることができます。
+このように、Freer は Free より簡単にモナドを得ることができます。
 
 ## Efficient Freer
 
-FreerのflatMapの実装には問題があります。
+Freer の flatMap の実装には問題があります。
 
 ```scala
   def flatMap[B](f: A => Freer[F, B]): Freer[F, B] =
@@ -198,9 +200,9 @@ FreerのflatMapの実装には問題があります。
     }
 ```
 
-Pureに到達するまで再帰的に`flatMap`を呼び出しています。
+Pure に到達するまで再帰的に `flatMap` を呼び出しています。
 
-これは次のようなケースで時間計算量がO(n^2)になります。
+これは次のようなケースで時間計算量が `O(n^2)` になります。
 
 `x.flatMap(f_1).flatMap(f_2) ... .flatMap(f_n)`
 
@@ -208,7 +210,7 @@ Pureに到達するまで再帰的に`flatMap`を呼び出しています。
 
 ### Fast type-aligned queue
 
-`Arrows[F, A, B]`は関数`A => Freer[F, B]`を表現する二分木です。
+`Arrows[F, A, B]` は関数 `A => Freer[F, B]` を表現する二分木です。
 
 ```scala
 sealed trait Arrows[F[_], A, B] {
@@ -226,7 +228,7 @@ case class Node[F[_], A, B, C](left: Arrows[F, A, B], right: Arrows[F, B, C]) ex
 
 要素の追加と連結は関数の合成を意味し、定数時間で実行されます。
 
-Arrowsを使うことでFreerは次のように定義されます。
+Arrows を使うことで Freer は次のように定義されます。
 
 ```scala
 sealed trait Freer[F[_], A] {
@@ -252,13 +254,13 @@ object Freer {
 }
 ```
 
-これでn回の`flatMap`による合成がO(n)で実行できます。
+これで `n` 回の `flatMap` による合成が `O(n)` で実行できます。
 
 ### Left-edge deconstruction
 
-Arrowsの関数適用を記述するために新たなデータ構造を定義します。
+Arrows の関数適用を記述するために新たなデータ構造を定義します。
 
-ViewはArrowsから右結合な構造を構築します。
+View は Arrows から右結合な構造を構築します。
 
 ```scala
 sealed trait Arrows[F[_], A, B] {
@@ -285,9 +287,9 @@ case class One[F[_], A, B](f: A => Freer[F, B]) extends View[F, A, B]
 case class Cons[F[_], A, B, C](f: A => Freer[F, B], k: Arrows[F, B, C]) extends View[F, A, C]
 ```
 
-`Leaf`は`One`に対応し、`Node`は左の要素を分解し右の要素に連結させることで`Cons`に対応します。
+`Leaf` は `One` に対応し、`Node` は左の要素を分解し右の要素に連結させることで `Cons` に対応します。
 
-`view`関数はならし定数時間で実行されます。
+`view` 関数はならし定数時間で実行されます。
 
 このデータ構造を使うことで関数適用は次のように定義できます。
 
@@ -311,13 +313,13 @@ sealed trait Arrows[F[_], A, B] {
 }
 ```
 
-これでFreerで示した例を記述することができます。
+これで Freer で示した例を同様に記述することができます。
 
 ## Extensible Freer
 
-Treeモナド以外のモナドも定義してみましょう。
+Tree モナド以外のモナドも定義してみましょう。
 
-次は失敗するかもしれない計算をFreerで表したものです。
+次は失敗するかもしれない計算を Freer で表したものです。
 
 ```scala
 type Const[A] = Unit
@@ -335,7 +337,7 @@ def run[A](m: Maybe[A])(default: A): A =
   }
 ```
 
-`just`が成功を表し、`nothing`が失敗を表します。
+`just` が成功を表し、`nothing` が失敗を表します。
 
 これは次のように利用できます。
 
@@ -355,11 +357,11 @@ val e2 = for {
 assert(maybe(e2)(-1) == -1)
 ```
 
-このMaybeモナドとTreeモナドを組み合わせて使うことはできるでしょうか。
+この Maybe モナドと Tree モナドを組み合わせて使うことはできるでしょうか。
 
 ### Open Union
 
-型の和をFreerモナドに与えることでこの問題を解決します。
+型の和を Freer モナドに与えることでこの問題を解決します。
 
 ```scala
 sealed trait Union
@@ -373,9 +375,9 @@ case class Inl[F[_], A, U <: Union](fa: F[A]) extends (F :+: U)
 case class Inr[F[_], U <: Union](u: U) extends (F :+: U)
 ```
 
-`:+:`が型の和を構成し、`Void`がその終端を表現します。
+`:+:` が型の和を構成し、`Void` がその終端を表現します。
 
-Unionの値は次のように作ることができます。
+Union の値は次のように作ることができます。
 
 ```scala
 type Tree[A] = (A, A)
@@ -385,11 +387,11 @@ type Maybe[A] = Unit
 val tree1: Maybe :+: Tree :+: Void = Inr(Inl((0, 1): Tree[Int]))
 ```
 
-Unionの導入に伴いTreeやMaybeを構成する型`F`自体にそのモナドの名前を付けることにします。
+Union の導入に伴い Tree や Maybe を構成する型 `F` 自体にそのモナドの名前を付けることにします。
 
-この例からわかる通り、InlとInrを使って型を合わせる必要があります。
+この例からわかる通り、Inl と Inr を使って型を合わせる必要があります。
 
-そこで、Unionへ値を埋め込むための型クラスを導入します。
+そこで、Union へ値を埋め込むための型クラスを導入します。
 
 ```scala
 trait Member[F[_], U <: Union] {
@@ -413,11 +415,11 @@ object Member {
 }
 ```
 
-`inject`はモナドを構成する`F`からUnion`U`を得ます。
+`inject` はモナドを構成する `F` から Union `U` を得ます。
 
-左側への埋め込みは`Member.left`が、右側への埋め込みは`Member.right`が行います。
+左側への埋め込みは `Member.left` が、右側への埋め込みは `Member.right` が行います。
 
-Memberのインスタンスを得るために次のような関数を定義しておくと便利でしょう。
+Member のインスタンスを得るために次のような関数を定義しておくと便利でしょう。
 
 ```scala
 object Member {
@@ -427,17 +429,17 @@ object Member {
 }
 ```
 
-先の例でMemberを利用すると次のようになります。
+先の例で Member を利用すると次のようになります。
 
 ```scala
 val tree2 = Member[Tree, Maybe :+: Tree :+: Void].inject((0, 1): Tree[Int])
 ```
 
-型に合わせて`Inl`と`Inr`を書かずに済むようになりました。
+型に合わせて `Inl` と `Inr` を書かずに済むようになりました。
 
-Unionを使ったFreerをEffと呼ぶことにします。
+Union を使った Freer を Eff と呼ぶことにします。
 
-Effは次のように定義されます。
+Eff は次のように定義されます。
 
 ```scala
 sealed trait Eff[U <: Union, A] {
@@ -457,11 +459,11 @@ case class Pure[U <: Union, A](a: A) extends Eff[U, A]
 case class Impure[U <: Union, A, B](u: U, f: Arrows[U, A, B]) extends Eff[U, B]
 ```
 
-`F[_]`を`U <: Union`で置き換えました。
+`F[_]` を `U <: Union` で置き換えました。
 
-ArrowsとViewにも同様の変更を加えます。
+Arrows と View にも同様の変更を加えます。
 
-また、Memberを使うことで作用のある計算は次のように構築できます。
+また、Member を使うことで作用のある計算は次のように構築できます。
 
 ```scala
 object Eff {
@@ -472,7 +474,7 @@ object Eff {
 }
 ```
 
-これらを用いてTreeモナドは次のように定義されます。
+これらを用いて Tree モナドは次のように定義されます。
 
 ```scala
 def leaf[U <: Union, A](a: A)(implicit member: Member[Tree, U]): Eff[U, A] = Pure(a)
@@ -500,21 +502,25 @@ def fold[U <: Union, A, B](t: Eff[Tree :+: U, A])(f: A => B)(g: (B, B) => B): Ef
 def str[U <: Union, A, B](t: Eff[Tree :+: U, A]): Eff[U, String] = fold(t)(_.toString)((x, y) => s"($x, $y)")
 ```
 
-`fold`の定義は少し複雑になりました。
+`fold` の定義は少し複雑になりました。
 
-`fold`は`Eff[Tree :+: U, A]`から関数`A => B`と`(B, B) => B`を用いて`Eff[U, B]`を構築します。
+`fold` は `Eff[Tree :+: U, A]` から関数 `A => B` と `(B, B) => B` を用いて `Eff[U, B]` を構築します。
 
-Pureの場合はその値を関数に適用しPureに包んで返します。
+Pure の場合はその値を関数に適用し Pure に包んで返します。
 
-Impureの場合は継続`k`が定義されます。
+Impure の場合は継続 `k` が定義されます。
 
-`k`はTreeのそれぞれの値に`h`を適用し、その結果に`g`を適用します。
+`k` は Tree のそれぞれの値に `h` と `fold` を適用し、その計算結果に `g` を適用することで畳み込みを行います。
 
-UnionがInlの場合はその値を`k`に適用し、Inrの場合はその値と`k`からImpureを構築します。
+Union が Inl の場合はその値を `k` に適用し、Inr の場合はその値と `k` から Impure を構築します。
 
-Effのパラメータ`U`は漸減し、最終的にVoidになります。
+ここで重要なのは再帰呼び出しによる継続の実行です。
 
-`Eff[Void, A]`から値を取り出す関数は次のように定義されます。
+ある程度パターン化されているので型を合わせることで自然に定義することが可能です。
+
+Eff のパラメータ `U` は漸減し、最終的に Void になります。
+
+`Eff[Void, A]` から値を取り出す関数は次のように定義されます。
 
 ```scala
 object Eff {
@@ -527,9 +533,9 @@ object Eff {
 }
 ```
 
-`Eff[Void, A]`はImpureを値に持たないため、安全に実行されます。
+`Eff[Void, A]` は Impure を値に持たないため、安全に実行されます。
 
-Treeモナドは次のように使えます。
+Tree モナドは次のように使えます。
 
 ```scala
 type U = Tree :+: Void
@@ -544,11 +550,11 @@ val r = for {
 assert(Eff.run(str(r)) == "((1, 1), ((2, 2), (3, 3)))")
 ```
 
-Treeの例の実装は今までと同様です。
+Tree の例の実装は今までと同様です。
 
-`Eff.run`により最終的な結果を取り出しています。
+`Eff.run` により最終的な結果を取り出しています。
 
-Maybeモナドも同様に定義してみましょう。
+Maybe モナドも同様に定義してみましょう。
 
 ```scala
 def nothing[U <: Union, A](implicit member: Member[Maybe, U]): Eff[U, A] = Eff((): Maybe[Eff[U, A]])
@@ -563,9 +569,9 @@ def maybe[U <: Union, A](m: Eff[Maybe :+: U, A])(default: A): Eff[U, A] =
   }
 ```
 
-`maybe`はImpureがInlを持つならばデフォルト値を返し、Inrを持つならばそのUnion`u`の継続で`maybe`を実行します。
+`maybe` は Impure が Inl を持つならばデフォルト値を返し、Inr を持つならばその Union `u` の継続で `maybe` を実行します。
 
-Maybeモナドは次のように使えます。
+Maybe モナドは次のように使えます。
 
 ```scala
 type U = Maybe :+: Void
@@ -587,9 +593,9 @@ val e2 = for {
 assert(Eff.run(maybe(e2)(-1)) == -1)
 ```
 
-EffでもFreerと同様の例が実行できました。
+Eff でも Freer と同様の例が実行できました。
 
-Effではこれらのモナドを一つのfor式で混合させることができます。
+Eff ではこれらのモナドを一つのfor式で混合させることができます。
 
 ```scala
 def e1[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
@@ -602,9 +608,9 @@ def e1[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int
 assert(Eff.run(maybe(str(e1[Tree :+: Maybe :+: Void]))("fail")) == "(1, 2)")
 ```
 
-ここではTreeモナドとMaybeモナドが混在しています。
+ここでは Tree モナドと Maybe モナドが混在しています。
 
-実行する際には具体的なUnionを渡す必要があります。
+実行する際には具体的な Union を渡す必要があります。
 
 モナドの実行順序は自由に変えることができます。
 
@@ -621,7 +627,7 @@ assert(Eff.run(maybe(str(e2[Tree :+: Maybe :+: Void]))("fail")) == "fail")
 assert(Eff.run(str(maybe(e2[Maybe :+: Tree :+: Void])(-1))) == "-1")
 ```
 
-Effについてまとめると次のようになります。
+Eff についてまとめると次のようになります。
 
 * 様々なモナドを表現できる
 * 複数の作用を混在させることが可能
