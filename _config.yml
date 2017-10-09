@@ -1,3 +1,5 @@
 exclude: [src, target, project]
-markdown: redcarpet
-highlighter: pygments
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge

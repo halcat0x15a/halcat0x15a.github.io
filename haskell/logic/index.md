@@ -202,7 +202,7 @@ in runL (Just 1)
             if even x then return else mzero)
 ```
 
-### 3.4 Laws of interleave and >>-
+### 3.4 Laws of interleave and `>>-`
 
 `interleave`と`>>-`は`mplus`と`>>=`のアナロジーです。
 
@@ -701,7 +701,11 @@ do HOne x <- reify m0
     * `f2comp`を実行する
     * 他の選択肢を試す
 
-```(odds >> mzero) `mplus` m```で発散を回避できます。
+```haskell
+(odds >> mzero) `mplus` m
+```
+
+で発散を回避できます。
 
 `SR r`に`msplit`を実装します。
 
