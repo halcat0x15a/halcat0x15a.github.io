@@ -5,7 +5,7 @@ title: Extensible Effects in Scala
 
 # Extensible Effects in Scala
 
-[Freer Monads, More Extensible Effects](http://okmij.org/ftp/Haskell/extensible/more.pdf)で紹介されるEffモナドをScalaで解説します。
+[Freer Monads, More Extensible Effects](http://okmij.org/ftp/Haskell/extensible/more.pdf) で紹介される Eff モナドを Scala で解説します。
 
 ## Free Monad
 
@@ -45,7 +45,7 @@ case class Impure[F[_], A](ff: F[Free[F, A]]) extends Free[F, A]
 
 Free は Functor `F` と計算値 `A` を型パラメータにとります。
 
-`flatMap` は Pure ならば値を関数に適用し、Impure ならば Functor を使って `F` の計算値に `f` を適用します。
+`flatMap` は Pure ならば関数に値を適用し、Impure ならば Functor を使って `F` の計算値に `f` を適用します。
 
 `F` のパラメータの扱いによって様々な再帰的なデータ構造を表現することができます。
 
@@ -65,9 +65,9 @@ implicit val PairFunctor: Functor[Pair] =
 
 Pair は要素をただ二つだけ持つコンテナです。
 
-Pair の Functor はそれぞれの要素を関数に適用し、Pair を構築します。
+Pair の Functor はそれぞれの要素に関数を適用し、新たに Pair を構築します。
 
-Pair に Free を適用することで Tree になります。
+Pair に Free を適用することで Tree ができます。
 
 ```scala
 type Tree[A] = Free[Pair, A]
@@ -77,7 +77,9 @@ def leaf[A](a: A): Tree[A] = Pure(a)
 def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Impure((x, y): Pair[Tree[A]])
 ```
 
-Tree はモナドになります。
+`leaf` は Pure で表現され、node は Tree を再帰的に持つ Impure で表現されます。
+
+Pair が Functor のインスタンスを持つため Tree はモナドになります。
 
 ```scala
 val r = for {
@@ -116,7 +118,7 @@ Coyoneda は任意の `F[_]` と始域 `A` と終域 `B` を型パラメータ�
 
 Coyonedaは `map` を持つため Functor のインスタンスになります。
 
-つまり、Free に Coyoneda を加えることで、任意の `F[_]` からモナドを構成できるようになります。
+つまり、Free に Coyoneda を加えることで、任意の `F` からモナドを構成できるようになります。
 
 ```scala
 sealed trait Freer[F[_], A] {
@@ -136,9 +138,9 @@ case class Pure[F[_], A](a: A) extends Freer[F, A]
 case class Impure[F[_], A, B](fa: F[A], k: A => Freer[F, B]) extends Freer[F, B]
 ```
 
-Free では Impure が `F` に Free を適用することで再帰的な構造を表していたのに対し、Freer では Impure が `F[A]` とその継続の計算として `A => Freer[F, B]` をとるようになります。
+Free では Impure が `F` を Free に適用することで再帰的な構造を表していたのに対し、Freer では Impure が `F[A]` とその継続の計算として `A => Freer[F, B]` をとることで再帰的な構造を表しています。
 
-`flatMap` は Impure の場合に Freer モナドの元で関数の合成 (Kleisli composition) を行います。
+`flatMap` は Impure の場合に Freer モナドの元で関数の合成を行っており、これは Kleisli composition と呼ばれます。
 
 Free と同じように作用のある計算を記述するには、次のような関数があると便利でしょう。
 
@@ -163,7 +165,7 @@ def leaf[A](a: A): Tree[A] = Pure(a)
 def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Freer((x, y): Pair[Tree[A]])
 ```
 
-先の例も同様に記述できます。
+先の例も同様に記述することができます。
 
 ```scala
 val r = for {
