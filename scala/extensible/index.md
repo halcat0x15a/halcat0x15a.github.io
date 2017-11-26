@@ -7,6 +7,13 @@ title: Extensible Effects in Scala
 
 [Freer Monads, More Extensible Effects](http://okmij.org/ftp/Haskell/extensible/more.pdf) で紹介される Eff モナドを Scala で解説します。
 
+### Contents
+
+1. [Free Monad](#free-monad)
+2. [Freer Monad](#freer-monad)
+3. [Efficient Freer](#efficient-freer)
+4. [Eff Monad (Extensible Freer)](#eff-monad)
+
 ## Free Monad
 
 Free は Functor を与えることでモナドになるデータ型です。
@@ -118,7 +125,7 @@ Coyoneda は任意の `F[_]` と始域 `A` と終域 `B` を型パラメータ�
 
 Coyonedaは `map` を持つため Functor のインスタンスになります。
 
-つまり、Free に Coyoneda を加えることで、任意の `F` からモナドを構成できるようになります。
+つまり、Free に Coyoneda の構造を加えることで、任意の `F` からモナドを構成できるようになります。
 
 ```scala
 sealed trait Freer[F[_], A] {
@@ -317,7 +324,7 @@ sealed trait Arrows[F[_], A, B] {
 
 これで Freer で示した例を同様に記述することができます。
 
-## Extensible Freer
+## Eff Monad
 
 Tree モナド以外のモナドも定義してみましょう。
 
