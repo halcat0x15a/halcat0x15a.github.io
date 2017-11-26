@@ -74,7 +74,7 @@ Pair は要素をただ二つだけ持つコンテナです。
 
 Pair の Functor はそれぞれの要素に関数を適用し、新たに Pair を構築します。
 
-Pair に Free を適用することで Tree ができます。
+Pair に Free を適用することで Tree を構成できます。
 
 ```scala
 type Tree[A] = Free[Pair, A]
@@ -160,39 +160,46 @@ object Freer {
 }
 ```
 
-Freer を使って Tree を表現してみましょう。
+Freer を使って Maybe (Option) を表現してみましょう。
 
 ```scala
-type Pair[A] = (A, A)
+type ConstUnit[A] = Unit
 
-type Tree[A] = Freer[Pair, A]
+type Maybe[A] = Freer[ConstUnit, A]
 
-def leaf[A](a: A): Tree[A] = Pure(a)
+def some[A](a: A): Maybe[A] = Pure(a)
 
-def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Freer((x, y): Pair[Tree[A]])
+def none[A]: Maybe[A] = Freer((): ConstUnit[Maybe[A]])
 ```
 
-先の例も同様に記述することができます。
+Maybe は値を含まないかもしれない計算を表現します。
+
+値が存在する場合は `some` で、存在しない場合は `none` で Maybe を構築します。
+
+Maybe を使った簡単な例を示します。
 
 ```scala
+def safeDiv(n: Int, d: Int): Maybe[Int] = if (d == 0) none else some(n / d)
+
 val r = for {
-  x <- node(leaf(0), node(leaf(1), leaf(2)))
-  y <- node(leaf(x), leaf(x))
-} yield y + 1
+  n <- safeDiv(4, 2)
+  m <- safeDiv(n, 0)
+} yield m
 ```
 
-Tree に対する畳み込み関数を定義し、文字列に変換する関数を定義してみましょう。
+Free と違って Functor のインスタンスを定義することなくモナドが得られました。
+
+しかし、Freer は関数をデータ構造に持っているので単純な比較ができなくなりました。
+
+Maybe を実行する関数を定義して `r` の計算結果を確認します。
 
 ```scala
-def fold[A, B](t: Tree[A])(f: A => B)(g: (B, B) => B): B =
-  t match {
-    case Pure(a) => f(a)
-    case Impure((x, y), k) => g(fold(k(x))(f)(g), fold(k(y))(f)(g))
-  }
+def maybe[A](maybe: Maybe[A])(default: A): A = maybe match {
+  case Pure(a) => a
+  case Impure((), _) => default
+}
 
-def str[A](t: Tree[A]): String = fold(t)(_.toString)((x, y) => s"($x, $y)")
-
-assert(str(r) == "((1, 1), ((2, 2), (3, 3)))")
+assert(maybe(r)(42) == 42)
 ```
 
 このように、Freer は Free より簡単にモナドを得ることができます。
@@ -326,47 +333,9 @@ sealed trait Arrows[F[_], A, B] {
 
 ## Eff Monad
 
-Tree モナド以外のモナドも定義してみましょう。
+ここまでで Tree モナドと Maybe モナドの Freer による表現を紹介しました。
 
-次は失敗するかもしれない計算を Freer で表したものです。
-
-```scala
-type Const[A] = Unit
-
-type Maybe[A] = Freer[Const, A]
-
-def nothing[A]: Maybe[A] = Impure((): Const[Maybe[A]], (x: Maybe[A]) => x)
-
-def just[A](a: A): Maybe[A] = Pure(a)
-
-def run[A](m: Maybe[A])(default: A): A =
-  m match {
-    case Pure(a) => a
-    case Impure((), _) => default
-  }
-```
-
-`just` が成功を表し、`nothing` が失敗を表します。
-
-これは次のように利用できます。
-
-```scala
-val e1 = for {
-  x <- just(2)
-  y <- just(3)
-} yield x + y
-
-assert(maybe(e1)(-1) == 5)
-
-val e2 = for {
-  x <- just(2)
-  y <- nothing[Int]
-} yield x + y
-
-assert(maybe(e2)(-1) == -1)
-```
-
-この Maybe モナドと Tree モナドを組み合わせて使うことはできるでしょうか。
+これらのモナドを組み合わせて使うことは可能でしょうか。
 
 ### Open Union
 

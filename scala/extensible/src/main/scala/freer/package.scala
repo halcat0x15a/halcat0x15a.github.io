@@ -16,4 +16,17 @@ package object freer {
 
   def str[A](t: Tree[A]): String = fold(t)(_.toString)((x, y) => s"($x, $y)")
 
+  type ConstUnit[A] = Unit
+
+  type Maybe[A] = Freer[ConstUnit, A]
+
+  def some[A](a: A): Maybe[A] = Pure(a)
+
+  def none[A]: Maybe[A] = Freer((): ConstUnit[Maybe[A]])
+
+  def maybe[A](maybe: Maybe[A])(default: A): A = maybe match {
+    case Pure(a) => a
+    case Impure((), _) => default
+  }
+
 }
