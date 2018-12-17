@@ -153,10 +153,8 @@ Free と同じように作用のある計算を記述するには、次のよう
 
 ```scala
 object Freer {
-
   def apply[F[_], A](ff: F[Freer[F, A]]): Freer[F, A] =
     Impure(ff, (x: Freer[F, A]) => x)
-
 }
 ```
 
@@ -194,7 +192,7 @@ Free と違って Functor のインスタンスを定義することなくモナ
 Maybe を実行する関数を定義して `r` の計算結果を確認します。
 
 ```scala
-def maybe[A](maybe: Maybe[A])(default: A): A = maybe match {
+def maybe[A](m: Maybe[A])(default: A): A = m match {
   case Pure(a) => a
   case Impure((), _) => default
 }
@@ -209,11 +207,11 @@ assert(maybe(r)(42) == 42)
 Freer の flatMap の実装には問題があります。
 
 ```scala
-  def flatMap[B](f: A => Freer[F, B]): Freer[F, B] =
-    this match {
-      case Pure(a) => f(a)
-      case Impure(fa, k) => Impure(fa, (a: Any) => k(a).flatMap(f))
-    }
+def flatMap[B](f: A => Freer[F, B]): Freer[F, B] =
+  this match {
+    case Pure(a) => f(a)
+    case Impure(fa, k) => Impure(fa, (a: Any) => k(a).flatMap(f))
+  }
 ```
 
 Pure に到達するまで再帰的に `flatMap` を呼び出しています。
@@ -332,6 +330,13 @@ sealed trait Arrows[F[_], A, B] {
 これで Freer で示した例を同様に記述することができます。
 
 ## Eff Monad
+
+Maybe モナド以外のモナドを Freer を使って表現してみましょう。
+
+Writer モナドは計算値以外に出力の値を持ちます。
+
+```scala
+```
 
 ここまでで Tree モナドと Maybe モナドの Freer による表現を紹介しました。
 
