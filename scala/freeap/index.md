@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: article
 title: Free Applicative Functors in Scala
 ---
 

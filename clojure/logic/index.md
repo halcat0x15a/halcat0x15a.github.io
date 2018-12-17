@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: article
 title: Lispでも論理プログラミングがしたい！
 ---
 

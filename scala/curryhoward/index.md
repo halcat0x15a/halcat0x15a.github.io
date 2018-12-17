@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: article
 title: Scalaの合併型と全称型
 ---
 
