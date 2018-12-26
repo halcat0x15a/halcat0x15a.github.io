@@ -24,13 +24,13 @@ Scalaが標準で備える型と論理の対応は次のようになります。
   </tbody>
 </table>
 
-`Any`は全ての型のスーパータイプ、`Nothing`は全ての型のサブタイプです。
+`Any` は全ての型のスーパータイプ、`Nothing` は全ての型のサブタイプです。
 
-`A with B`は`A`と`B`の交差型を作ります。
+`A with B` は `A` と `B` の交差型を作ります。
 
-`A <:< B`は`A`が`B`のサブタイプであることを表します。
+`A <:< B` は `A` が `B` のサブタイプであることを表します。
 
-`forSome`は存在型を構成します。
+`forSome` は存在型を構成します。
 
 ## 否定型
 
@@ -38,11 +38,14 @@ Scalaが標準で備える型と論理の対応は次のようになります。
 
 ```scala
 type Not[A] = A => Nothing
+
+// もしくは
+// type Not[A] = A <:< Nothing
 ```
 
-`Nothing`はボトム型なので`Nothing`以外の型では包含関係を満たせないことがわかります。
+`Nothing` はボトム型なので `Nothing` 以外の型では包含関係を満たせないことがわかります。
 
-また、Scalaの型システムにおいて`Not[Not[A]] =:= A`が成り立たないことに注意しましょう。
+また、Scalaの型システムにおいて `Not[Not[A]] =:= A` が成り立たないことに注意しましょう。
 
 ## 合併型
 
@@ -67,11 +70,11 @@ assert(double(2) == "4")
 assert(double("2") == "22")
 ```
 
-`Or`が二重否定を含むため`Not[Not[A]]`とすることで型を合わせています。
+`Or` が二重否定を含むため `Not[Not[A]]` とすることで型を合わせています。
 
-この`double`関数は`Int`型と`String`型以外の値を受け付けません。
+この `double` 関数は `Int` 型と `String` 型以外の値を受け付けません。
 
-また、`Either`に比べ値をラップする必要がなく効率が良いです。
+また、`Either` と比べて値をラップする必要がなく効率が良いです。
 
 ### 構造的部分型
 
@@ -105,35 +108,39 @@ trait Forall[P[_]] {
 }
 ```
 
+これは任意の `A` に対して `P[A]` が成り立つことを表します。
+
 これを用いると任意の型を扱う値を表現できます。
 
 ```scala
 type Nat[F[_], G[_]] = Forall[({ type H[A] = F[A] => G[A] })#H]
 
-def mapping[F[_], G[_], A, B](f: Nat[F, G])(pair: (F[A], F[B])): (G[A], G[B]) = (f[A](pair._1), f[B](pair._2))
-
-def opt2list: Nat[Option, List] =
+val opt2list: Nat[Option, List] =
   new Nat[Option, List] {
     def apply[A]: Option[A] => List[A] = _.toList
   }
 
-assert(mapping(opt2list)((Some("hoge"), None)) == (List("hoge"), Nil))
-
-def list2opt: Nat[List, Option] =
+val list2opt: Nat[List, Option] =
   new Nat[List, Option] {
     def apply[A]: List[A] => Option[A] = _.headOption
   }
 
+def mapping[F[_], G[_], A, B](f: Nat[F, G])(pair: (F[A], F[B])): (G[A], G[B]) = (f[A](pair._1), f[B](pair._2))
+
+assert(mapping(opt2list)((Some("hoge"), None)) == (List("hoge"), Nil))
+
 assert(mapping(list2opt)((List(0, 1, 2), Nil)) == (Some(0), None))
 ```
 
-`Nat[F, G]`は任意の型`A`に対して`F[A]`を`G[A]`に対応させる型です。
+`Nat[F, G]` は任意の型 `A` に関して `F[A]` を `G[A]` に対応させる型です。
 
-`mapping`は`(F[A], F[B])`を`Nat[F, G]`を使って`(G[A], G[B])`に変換します。
+`opt2list` はOptionからListへ、`list2opt` はListからOptionへの変換を行います。
+
+`mapping` は `(F[A], F[B])` を `Nat[F, G]` を使って `(G[A], G[B])` に対応させます。
 
 この全称型もまた否定型と存在型により表現が可能です。
 
-`全てのAはPである`ということは`PでないAは存在しない`と言い換えることができます。
+`全てのAはPである` ということは `PでないAは存在しない` と言い換えることができます。
 
 ```scala
 type Forall[P[_]] = Not[Not[P[A]] forSome { type A }]
@@ -141,23 +148,31 @@ type Forall[P[_]] = Not[Not[P[A]] forSome { type A }]
 
 この全称型も合併型と同様に二重否定を含みます。
 
-継続渡し形式(CPS)により二重否定を導入できます。
+この `Forall` の定義で `opt2list` と `list2opt` を実装すると以下のようになります。
 
 ```scala
-def opt2list: Nat[Option, List] = k => k(_.toList)
+type Nat[F[_], G[_]] = Forall[({ type H[A] = F[A] => G[A] })#H]
 
-def list2opt: Nat[List, Option] = k => k(_.headOption)
+val opt2list: Nat[Option, List] = k => k(_.toList)
+
+val list2opt: Nat[List, Option] = k => k(_.headOption)
 ```
 
-利用する際には二重否定を除去する必要があります。
+継続渡し形式(CPS)により二重否定を導入することができます。
 
-最も簡単な定義は`return`を使ったものです。
+関数リテラルが使えることでより簡単に `Forall` の値を作ることができます。
+
+この値を利用する際には二重否定を除去する必要があります。
+
+最も簡単な定義は `return` を使ったものです。
 
 ```scala
 def callCC[A](f: Not[Not[A]]): A = f(a => return a)
 ```
 
-これで最初に定義した全称型と同じように使えます。
+二重否定の除去は継続の呼び出しに対応します。
+
+これを用いて `mapping` は以下のように定義できます。
 
 ```scala
 def mapping[F[_], G[_], A, B](f: Nat[F, G])(pair: (F[A], F[B])): (G[A], G[B]) =
@@ -168,7 +183,7 @@ assert(mapping(opt2list)((Some("hoge"), None)) == (List("hoge"), Nil))
 assert(mapping(list2opt)((List(0, 1, 2), Nil)) == (Some(0), None))
 ```
 
-この定義は関数リテラルが使えるため`trait`で定義した場合よりも簡単に全称型を作れます。
+`callCC` は `Forall` に具体的な型を与えて利用するので少々冗長な記述になります。
 
 ## 参考
 

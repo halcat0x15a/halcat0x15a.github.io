@@ -345,7 +345,7 @@ JavaScriptで動作させるには次のように書き換える必要があり�
 
 以下に今回実装した評価機を示します。
 
-<div>
+<div class="mb-3">
   <div class="form-group">
     <label for="result">Result</label>
     <input type="text" class="form-control" id="result" readonly>
