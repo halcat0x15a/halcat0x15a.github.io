@@ -29,5 +29,4 @@ package object efficient {
       case Pure(a) => a
       case Impure((), _) => default
     }
-
 }

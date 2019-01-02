@@ -1,7 +1,6 @@
 package freer
 
 sealed trait Freer[F[_], A] {
-
   def map[B](f: A => B): Freer[F, B] = flatMap(a => Pure(f(a)))
 
   def flatMap[B](f: A => Freer[F, B]): Freer[F, B] =
@@ -9,7 +8,6 @@ sealed trait Freer[F[_], A] {
       case Pure(a) => f(a)
       case Impure(fa, k) => Impure(fa, (a: Any) => k(a).flatMap(f))
     }
-
 }
 
 case class Pure[F[_], A](a: A) extends Freer[F, A]

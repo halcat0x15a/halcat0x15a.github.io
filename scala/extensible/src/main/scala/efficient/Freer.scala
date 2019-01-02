@@ -26,7 +26,7 @@ sealed trait Arrows[F[_], A, B] {
 
   def apply(a: A): Freer[F, B] = {
     @scala.annotation.tailrec
-    def go(f: Arrows[F, Any, B], a: Any): Freer[F, B] =
+    def go[A](f: Arrows[F, A, B], a: A): Freer[F, B] =
       f.view match {
         case One(f) => f(a)
         case Cons(f, r) =>
@@ -35,7 +35,7 @@ sealed trait Arrows[F[_], A, B] {
             case Impure(f, l) => Impure(f, l ++ r)
           }
       }
-    go(this.asInstanceOf[Arrows[F, Any, B]], a)
+    go(this, a)
   }
 
   def :+[C](f: B => Freer[F, C]): Arrows[F, A, C] = Node(this, Leaf(f))
@@ -47,7 +47,7 @@ sealed trait Arrows[F[_], A, B] {
       case Leaf(f) => One(f)
       case Node(l, r) =>
         @scala.annotation.tailrec
-        def go(x: Arrows[F, A, Any], y: Arrows[F, Any, B]): View[F, A, B] =
+        def go[T](x: Arrows[F, A, T], y: Arrows[F, T, B]): View[F, A, B] =
           x match {
             case Leaf(f) => Cons(f, y)
             case Node(l, r) => go(l, Node(r, y))

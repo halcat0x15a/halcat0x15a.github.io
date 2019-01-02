@@ -4,9 +4,9 @@ package object extensible {
 
   type Maybe[A] = Unit
 
-  val tree1: Maybe :+: Tree :+: Void = Inr(Inl((0, 1): Tree[Int]))
+  val u1: Maybe :+: Tree :+: Void = Inr(Inl((0, 1): Tree[Int]))
 
-  val tree2 = Member[Tree, Maybe :+: Tree :+: Void].inject((0, 1): Tree[Int])
+  val u2 = Member[Tree, Maybe :+: Tree :+: Void].inject((0, 1): Tree[Int])
 
   def leaf[U <: Union, A](a: A)(implicit member: Member[Tree, U]): Eff[U, A] = Pure(a)
 
