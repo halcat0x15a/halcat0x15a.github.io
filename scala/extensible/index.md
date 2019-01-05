@@ -336,8 +336,6 @@ sealed trait Arrows[F[_], A, B] {
 
 これで効率的な Freer モナドは完成です。
 
-```scala
-
 ## Eff Monad
 
 ここまでで Tree モナドと Maybe モナドを Free と Freer を使って表現しました。
@@ -351,269 +349,288 @@ Freer モナドに計算構造 `F` を与えることで様々なモナドを表
 この `F` に複数の構造をもたせるため、型の和 Union を導入します。
 
 ```scala
-sealed trait Union
+sealed trait Union[F[_], G[_], A]
 
-sealed trait Void extends Union
+case class Inl[F[_], G[_], A](value: F[A]) extends Union[F, G, A]
 
-sealed trait :+:[F[_], U] extends Union
+case class Inr[F[_], G[_], A](value: G[A]) extends Union[F, G, A]
 
-case class Inl[F[_], A, U](fa: F[A]) extends (F :+: U)
-
-case class Inr[F[_], U](u: U) extends (F :+: U)
+sealed trait Void[A]
 ```
 
-ここで解説する Union は説明と記述を簡略化するために、型パラメータをひとつ減らしています。これにより発生する問題は後述します。
+Union は高階型パラメータ `F[_]`, `G[_]` とそれらに適用される型パラメータ `A` をとります。
 
-`:+:` が型の和を構成し、`Void` がその終端を表現します。
+`Inl` は Union の型パラメータの左側の値 `F[A]` を、`Inr` は右側の値 `G[A]` を値にもちます。
 
-Union の値は次のように作ることができます。
+`Void` は Union で構成される型の和の終端を表します。
+
+このまま複数の型を Union で繋げて型の和を作ることもできますが、とても冗長な記述になります。
+
+そこで以下のようなシンタックスシュガーを用意します。
 
 ```scala
-type Tree[A] = (A, A)
-
-type Maybe[A] = Unit
-
-val u1: Maybe :+: Tree :+: Void = Inr(Inl((0, 1): Tree[Int]))
+type :+:[F[_], G[_]] = { type R[A] = Union[F, G, A] }
 ```
 
-Union の導入に伴い Tree や Maybe を構成する型 `F` 自体にそのモナドの名前を付けることにします。
+`:+:` は `F[_]` と `G[_]` をとりタイプメンバ `type R[A] = Union[F, G, A]` をもつ構造型を返します。
 
-この例からわかる通り、Union の値を作るには `Inl` と `Inr` を使って型を合わせる必要があります。
-
-そこで、Union へ値を埋め込むための型クラスを導入します。
+これにより、中置記法を用いて Union の値を次のように作ることができます。
 
 ```scala
-trait Member[F[_], U] {
-  def inject[A](f: F[A]): U
+val u1: (List :+: (Option :+: Void)#R)#R[Int] = Inr(Inl(Some(0)))
+```
+
+`u1` は List または Option を Int に適用した値をもちます。
+
+Union の値を作るには `Inl` と `Inr` を使って型を合わせる必要があります。
+
+この型合わせを自動化するために型クラスを導入します。
+
+```scala
+trait Member[F[_], G[_]] {
+  def inject[A](f: F[A]): G[A]
 }
 ```
 
-Member は計算構造 `F` が型の和 `U` に含まれる制約を表現します。
+Member は型 `F` が Union のサブタイプ `G` に含まれる制約を表現します。
 
-`inject` は副作用付きの計算 `F[A]` を型の和 `U` に埋め込みます。
+`inject` は値 `F[A]` を Union の値 `G[A]` に埋め込みます。
 
 型クラス Member は2つのインスタンスをもちます。
 
 ```scala
 object Member {
-  implicit def left[F[_], U]: Member[F, F :+: U] =
-    new Member[F, F :+: U] {
-      def inject[A](f: F[A]): F :+: U = Inl(f)
+  implicit def left[F[_], G[_]]: Member[F, (F :+: G)#R] =
+    new Member[F, (F :+: G)#R] {
+      def inject[A](fa: F[A]): (F :+: G)#R[A] = Inl(fa)
     }
 
-  implicit def right[F[_], G[_], U](implicit member: Member[F, U]): Member[F, G :+: U] =
-    new Member[F, G :+: U] {
-      def inject[A](f: F[A]): G :+: U = Inr(member.inject(f))
+  implicit def right[F[_], G[_], H[_]](implicit member: Member[F, H]): Member[F, (G :+: H)#R] =
+    new Member[F, (G :+: H)#R] {
+      def inject[A](fa: F[A]): (G :+: H)#R[A] = Inr(member.inject(fa))
     }
 }
 ```
 
 左側への埋め込みは `Member.left` が、右側への埋め込みは `Member.right` が行います。
 
-Member のインスタンスを得るために次のような関数を定義しておくと便利です。
-
-```scala
-object Member {
-  def apply[F[_], U](implicit member: Member[F, U]): Member[F, U] = member
-}
-```
-
 先の例で Member を利用すると次のようになります。
 
 ```scala
-val u2 = Member[Tree, Maybe :+: Tree :+: Void].inject((0, 1): Tree[Int])
+val u2 = implicitly[Member[Option, (List :+: (Option :+: Void)#R)#R]].inject(Some(0))
 ```
 
-暗黙的な Member のインスタンスを使うことで、型に合わせて `Inl` と `Inr` を書かずに済むようになりました。
+暗黙的な Member のインスタンスを使うことで、型に合わせて `Inl` と `Inr` を書かずに Union の値を得ることができました。
 
 Union を使った Freer を Eff と呼ぶことにします。
 
 Eff は次のように定義されます。
 
 ```scala
-sealed trait Eff[U, A] {
-  def map[B](f: A => B): Eff[U, B] = flatMap(a => Pure(f(a)))
+sealed trait Eff[R[_], A] {
+  def map[B](f: A => B): Eff[R, B] = flatMap(a => Pure(f(a)))
 
-  def flatMap[B](f: A => Eff[U, B]): Eff[U, B] =
+  def flatMap[B](f: A => Eff[R, B]): Eff[R, B] =
     this match {
       case Pure(a) => f(a)
-      case Impure(u, g) => Impure(u, g :+ f)
+      case Impure(r, k) => Impure(r, k :+ f)
     }
 }
 
-case class Pure[U, A](a: A) extends Eff[U, A]
+case class Pure[R[_], A](a: A) extends Eff[R, A]
 
-case class Impure[U, A, B](u: U, f: Arrows[U, A, B]) extends Eff[U, B]
+case class Impure[R[_], A, B](union: R[A], k: Arrows[R, A, B]) extends Eff[R, B]
 ```
 
-`F[_]` を `U` で置き換えました。
+これは名前が違うだけで Freer の定義と同等であることがわかります。
 
-Arrows と View にも同様の変更を加えます。
+また、これから型パラメータ `R` を `エフェクトスタック` と呼ぶことにします。
 
-また、Member を使うことで副作用のある計算は次のように構築できます。
+Member を使うことで副作用のある計算は次のように構築できます。
 
 ```scala
 object Eff {
-  def apply[U, F[_], A](fa: F[Eff[U, A]])(implicit F: Member[F, U]): Eff[U, A] =
-    Impure(F.inject(fa), Leaf((x: Eff[U, A]) => x))
+  def apply[R[_], F[_], A](fa: F[A])(implicit F: Member[F, R]): Eff[R, A] =
+    Impure(F.inject(fa), Leaf((x: A) => Pure(x)))
 }
 ```
 
-これらを用いて Tree モナドは次のように定義されます。
+Member の制約を使って副作用付きの計算 `F` をエフェクトスタック `R` に埋め込むことで `F[A]` から `Eff[R, A]` を作ります。
+
+これらを用いて Writer モナドを定義してみましょう。
+
+Writer モナドは計算値とは別に出力の値をもちます。
 
 ```scala
-def leaf[U <: Union, A](a: A)(implicit member: Member[Tree, U]): Eff[U, A] = Pure(a)
-
-def node[U <: Union, A](x: Eff[U, A], y: Eff[U, A])(implicit member: Member[Tree, U]): Eff[U, A] = Eff((x, y): Tree[Eff[U, A]])
-
-def fold[U <: Union, A, B](t: Eff[Tree :+: U, A])(f: A => B)(g: (B, B) => B): Eff[U, B] =
-  t match {
-    case Pure(a) => Pure(f(a))
-    case Impure(u, h) =>
-      def k(t: Tree[Any]): Eff[U, B] =
-        t match {
-          case (x, y) =>
-            for {
-              a <- fold(h(x))(f)(g)
-              b <- fold(h(y))(f)(g)
-            } yield g(a, b)
-        }
-      u match {
-        case Inl(t) => k(t)
-        case Inr(u) => Impure(u, Leaf(k))
-      }
-  }
-
-def str[U <: Union, A, B](t: Eff[Tree :+: U, A]): Eff[U, String] = fold(t)(_.toString)((x, y) => s"($x, $y)")
+for {
+  _ <- tell("hello, ")
+  _ <- tell("world.")
+} yield 0
 ```
 
-`fold` の定義は少し複雑になりました。
+例えばこのような式は `("hello, world.", 0)` のような値を返します。
 
-`fold` は `Eff[Tree :+: U, A]` から関数 `A => B` と `(B, B) => B` を用いて `Eff[U, B]` を構築します。
+Writer は次のような構造をもちます。
 
-Pure の場合はその値を関数に適用し Pure に包んで返します。
+```scala
+sealed trait Writer[+A]
 
-Impure の場合は継続 `k` が定義されます。
+case class Tell(value: String) extends Writer[Unit]
 
-`k` は Tree のそれぞれの値に `h` と `fold` を適用し、その計算結果に `g` を適用することで畳み込みを行います。
+def tell[R[_]](value: String)(implicit w: Member[Writer, R]): Eff[R, Unit] = Eff(Tell(value))
+```
 
-Union が Inl の場合はその値を `k` に適用し、Inr の場合はその値と `k` から Impure を構築します。
+今回は説明を簡略化するために String のみを出力できるようにしています。
 
-ここで重要なのは再帰呼び出しによる継続の実行です。
+Writer は計算値 `A` を型パラメータにもちます。
 
-ある程度パターン化されているので型を合わせることで自然に定義することが可能です。
+`Tell` は出力 `value` を値にもち、`Writer[Unit]` を継承します。
 
-Eff のパラメータ `U` は漸減し、最終的に Void になります。
+これは `Tell` という構造が計算値 `Unit` を返すことを意味します。
 
-`Eff[Void, A]` から値を取り出す関数は次のように定義されます。
+`tell` は `value` を出力するメソッドで、エフェクトスタック `R` が Writer を含む制約を Member で表現しています。
+
+次はこの Writer を含む Eff を実行して出力値と計算値をとりだすハンドラを記述します。
+
+```scala
+object Writer {
+  def run[R[_], A](eff: Eff[(Writer :+: R)#R, A]): Eff[R, (String, A)] =
+    eff match {
+      case Pure(a) => Pure(("", a))
+      case Impure(Inl(Tell(v)), k) => run(k(())).map { case (s, a) => (v + s, a) }
+      case Impure(Inr(r), k) => Impure(r, Leaf((a: Any) => run(k(a))))
+    }
+}
+```
+
+1行ずつ見ていきましょう。
+
+`Writer.run` はエフェクトスタックの先頭に Writer を含む Eff を受け取り、エフェクトスタックから Writer を取り除いて実行結果 `(String, A)` をもつ Eff を返します。
+
+`eff` が Pure の場合は空の出力 `""` と計算値 `a` のペアで結果を返します。
+
+`eff` が Impure でかつ Inl の場合、つまり Writer のエフェクトが含まれるとき Writer の唯一のインスタンスである `Tell` にマッチします。
+
+Tell は `Writer[Unit]` を継承するので、継続 `k` に渡せる計算値は `Unit` に固定されます。
+
+継続 `k` を実行した結果を `run` で再帰的に実行し、その最終的な計算結果に対して `map` を使って出力値 `v` を加えます。
+
+`eff` が Impure でかつ Inr の場合、つまり Writer 以外のエフェクト `r` のとき Impure でそのまま返します。
+
+このとき、Impure の継続 `k` を `run` で再帰的に実行します。
+
+このハンドラの定義はある程度パターン化されているので、型を合わせることで自然に定義することが可能です。
+
+Eff のエフェクトスタック `R` は漸減し、最終的に Void になります。
+
+Eff から値を取り出す関数は次のように定義されます。
 
 ```scala
 object Eff {
-
   def run[A](eff: Eff[Void, A]): A =
     eff match {
       case Pure(a) => a
     }
-
 }
 ```
 
-`Eff[Void, A]` は Impure を値に持たないため、安全に実行されます。
+Void のインスタンスが存在しないことから、`Eff[Void, A]` は Impure を値にもたないため安全に実行されます。
 
-Tree モナドは次のように使えます。
+Eff で表現された Writer モナドは次のように利用することができます。
 
 ```scala
-type U = Tree :+: Void
+def e1[R[_]](implicit w: Member[Writer, R]) = for {
+  _ <- tell("hello, ")
+  _ <- tell("world.")
+} yield 0
 
-implicit val m = Member[Tree, U]
-
-val r = for {
-  x <- node(leaf(0), node(leaf(1), leaf(2)))
-  y <- node(leaf(x), leaf(x))
-} yield y + 1
-
-assert(Eff.run(str(r)) == "((1, 1), ((2, 2), (3, 3)))")
+assert(Eff.run(Writer.run(e1)) == ("hello, world.", 0))
 ```
 
-Tree の例の実装は今までと同様です。
+Eff を使うプログラムはエフェクトスタック `R` を型パラメータにとり、`R` に対して Member で利用するエフェクトを制約に加える必要があります。
 
-`Eff.run` により最終的な結果を取り出しています。
+このプログラムは Writer のみ利用しているので最終的なエフェクトスタックは `Writer :+: Void` になり、それぞれ `Writer.run` と `Eff.run` で実行されます。
 
-Maybe モナドも同様に定義してみましょう。
+Maybe モナドも Eff で同様に定義してみましょう。
 
 ```scala
-def nothing[U <: Union, A](implicit member: Member[Maybe, U]): Eff[U, A] = Eff((): Maybe[Eff[U, A]])
+case class Maybe[A]()
 
-def just[U <: Union, A](a: A)(implicit member: Member[Maybe, U]): Eff[U, A] = Pure(a)
+def some[R[_], A](a: A): Eff[R, A] = Pure(a)
+def none[R[_], A](implicit m: Member[Maybe, R]): Eff[R, A] = Eff(Maybe[A])
 
-def maybe[U <: Union, A](m: Eff[Maybe :+: U, A])(default: A): Eff[U, A] =
-  m match {
-    case Pure(a) => Pure(a)
-    case Impure(Inl(()), _) => Pure(default)
-    case Impure(Inr(u), k) => Impure(u, Leaf((x: Any) => maybe(k(x))(default)))
-  }
+object Maybe {
+  def run[R[_], A](eff: Eff[(Maybe :+: R)#R, A])(default: A): Eff[R, A] =
+    eff match {
+      case Pure(a) => Pure(a)
+      case Impure(Inl(Maybe()), _) => Pure(default)
+      case Impure(Inr(r), k) => Impure(r, Leaf((a: Any) => run(k(a))(default)))
+    }
+}
 ```
 
-`maybe` は Impure が Inl を持つならばデフォルト値を返し、Inr を持つならばその Union `u` の継続で `maybe` を実行します。
+`some` は Pure、`none` は `Maybe` を含む Impure で表現されます。
 
-Maybe モナドは次のように使えます。
+`Maybe.run` はエフェクトスタックの先頭に Maybe を含む Eff とデフォルト値 `default` を受け取り、エフェクトスタックから Maybe を取り除いて実行結果 `A` をもつ Eff を返します。
+
+`eff` が Pure の場合は値が存在するということで値をそのまま返します。
+
+`eff` が Impure で Inl をもつならば、継続を実行せずにデフォルト値を返します。
+
+`eff` が Impure で Inr をもつならば、その継続 `k` を `run` で再帰的に実行します。
+
+Eff で表現された Maybe モナドは次のように利用することができます。
 
 ```scala
-type U = Maybe :+: Void
-
-implicit val m = Member[Maybe, U]
-
-val e1 = for {
-  x <- just(2)
-  y <- just(3)
+def e2[R[_]](implicit m: Member[Maybe, R]) = for {
+  x <- some(2)
+  y <- none[R, Int]
 } yield x + y
 
-assert(Eff.run(maybe(e1)(-1)) == 5)
-
-val e2 = for {
-  x <- just(2)
-  y <- nothing[U, Int]
-} yield x + y
-
-assert(Eff.run(maybe(e2)(-1)) == -1)
+assert(Eff.run(Maybe.run(-1)(e2)) == -1)
 ```
 
-Eff でも Freer と同様の例が実行できました。
+`none` が含まれる式を実行するとデフォルト値が返ります。
 
 Eff ではこれらのモナドを一つのfor式で混合させることができます。
 
 ```scala
-def e1[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
+def e3[R[_]](implicit w: Member[Writer, R], m: Member[Maybe, R]) =
   for {
-    x <- just(0)
-    y <- just(1)
-    z <- node(leaf(x), leaf(y))
-  } yield z + 1
+    _ <- tell("hello, ")
+    _ <- none[R, Unit]
+    _ <- tell("world.")
+  } yield 0
 
-assert(Eff.run(maybe(str(e1[Tree :+: Maybe :+: Void]))("fail")) == "(1, 2)")
+assert(Eff.run(Writer.run(Maybe.run(-1)(e3))) == ("hello, ", -1))
 ```
 
-ここでは Tree モナドと Maybe モナドが混在しています。
+`e3` は Writer モナドと Maybe モナドが混在しています。
 
-実行する際には具体的な Union を渡す必要があります。
+これをエフェクトスタック `Maybe :+: Writer :+: Void` で実行すると、最初の `tell` は成功しますが、次の `tell` は `none` により継続が破棄されています。
 
-モナドの実行順序は自由に変えることができます。
+エフェクトの実行順序は自由に変えることができます。
 
 ```scala
-def e2[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
+def e4[R[_]](implicit w: Member[Writer, R], m: Member[Maybe, R]) =
   for {
-    x <- just(0)
-    y <- nothing[U, Int]
-    z <- node(leaf(x), leaf(y))
-  } yield z + 1
+    _ <- tell("hello, ")
+    _ <- none[R, Unit]
+    _ <- tell("world.")
+  } yield 0
 
-assert(Eff.run(maybe(str(e2[Tree :+: Maybe :+: Void]))("fail")) == "fail")
-
-assert(Eff.run(str(maybe(e2[Maybe :+: Tree :+: Void])(-1))) == "-1")
+assert(Eff.run(Maybe.run(("fail", -1))(Writer.run(e4))) == ("fail", -1))
 ```
 
-Eff についてまとめると次のようになります。
+`e3` が Maybe から Writer の順で実行していたのに対し、`e4` は Writer から実行しています。
+
+Maybe が最後に実行されることで全体の結果がデフォルト値になります。
+
+ここまでで Eff についてまとめると次のようになります。
 
 * 様々なモナドを表現できる
 * 複数の作用を混在させることが可能
 * モナドの合成が高速
+* モナドの実行順序を自由に決められる
+
+他にもエフェクトスタックを跨いだ処理が可能などの利点がありますが、[原論文](http://okmij.org/ftp/Haskell/extensible/more.pdf)や論文の日本語による[解説](https://www.slideshare.net/konn/freer-monads-more-extensible-effects-59411772)を参照してください。

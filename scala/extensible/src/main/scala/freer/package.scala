@@ -1,5 +1,4 @@
 package object freer {
-
   type Pair[A] = (A, A)
 
   type Tree[A] = Freer[Pair, A]
@@ -28,5 +27,4 @@ package object freer {
     case Pure(a) => a
     case Impure((), _) => default
   }
-
 }

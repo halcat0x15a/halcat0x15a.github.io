@@ -15,8 +15,6 @@ case class Pure[F[_], A](a: A) extends Freer[F, A]
 case class Impure[F[_], A, B](fa: F[A], k: A => Freer[F, B]) extends Freer[F, B]
 
 object Freer {
-
   def apply[F[_], A](ff: F[Freer[F, A]]): Freer[F, A] =
     Impure(ff, (x: Freer[F, A]) => x)
-
 }

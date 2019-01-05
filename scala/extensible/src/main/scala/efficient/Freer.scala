@@ -1,7 +1,6 @@
 package efficient
 
 sealed trait Freer[F[_], A] {
-
   def map[B](f: A => B): Freer[F, B] = flatMap(a => Pure(f(a)))
 
   def flatMap[B](f: A => Freer[F, B]): Freer[F, B] =
@@ -9,7 +8,6 @@ sealed trait Freer[F[_], A] {
       case Pure(a) => f(a)
       case Impure(fa, k) => Impure(fa, k :+ f)
     }
-
 }
 
 case class Pure[F[_], A](a: A) extends Freer[F, A]
@@ -23,7 +21,6 @@ object Freer {
 }
 
 sealed trait Arrows[F[_], A, B] {
-
   def apply(a: A): Freer[F, B] = {
     @scala.annotation.tailrec
     def go[A](f: Arrows[F, A, B], a: A): Freer[F, B] =
@@ -54,7 +51,6 @@ sealed trait Arrows[F[_], A, B] {
           }
         go(l, r)
     }
-
 }
 
 case class Leaf[F[_], A, B](f: A => Freer[F, B]) extends Arrows[F, A, B]
