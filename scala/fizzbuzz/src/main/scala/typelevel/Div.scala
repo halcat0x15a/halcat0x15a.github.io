@@ -1,13 +1,10 @@
 package typelevel
 
 trait Div[N <: Nat, M <: Nat] {
-
   type Result <: Nat
-
 }
 
 object Div {
-
   implicit def zero[N <: Nat, M <: Nat](implicit lt: LT[N, M]): Div[N, M] { type Result = Zero } =
     new Div[N, M] {
       type Result = Zero
@@ -17,5 +14,4 @@ object Div {
     new Div[N, M] {
       type Result = Succ[div.Result]
     }
-
 }

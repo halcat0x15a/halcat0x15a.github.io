@@ -3,9 +3,7 @@ package typelevel
 import org.scalatest.FunSpec
 
 class FizzBuzzSpec extends FunSpec {
-
   describe("FizzBuzz") {
-
     it("should return Fizz or Buzz or FizzBuzz or numbers") {
       assert(FizzBuzz[_1] == "1")
       assert(FizzBuzz[_2] == "2")
@@ -23,6 +21,5 @@ class FizzBuzzSpec extends FunSpec {
       assert(FizzBuzz[_14] == "14")
       assert(FizzBuzz[_15] == "FizzBuzz")
     }
-
   }
 }

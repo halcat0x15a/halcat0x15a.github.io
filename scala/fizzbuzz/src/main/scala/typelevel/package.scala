@@ -15,4 +15,32 @@ package object typelevel {
   type _13 = Succ[_12]
   type _14 = Succ[_13]
   type _15 = Succ[_14]
+
+  type +[N <: Nat, M <: Nat] = Plus[N, M]
+  type -[N <: Nat, M <: Nat] = Minus[N, M]
+  type *[N <: Nat, M <: Nat] = Mult[N, M]
+  type /[N <: Nat, M <: Nat] = Div[N, M]
+  type %[N <: Nat, M <: Nat] = Mod[N, M]
+  type <[N <: Nat, M <: Nat] = LT[N, M]
+
+  type ==[Exp, R] = Exp { type Result = R }
+
+  implicitly[_2 < _3]
+  implicitly[_3 < _6]
+
+  implicitly[_2 + _3 == _5]
+  implicitly[_6 + _9 == _15]
+
+  implicitly[_6 - _4 == _2]
+  implicitly[_9 - _6 == _3]
+
+  implicitly[_2 * _0 == _0]
+  implicitly[_3 * _2 == _6]
+
+  implicitly[_6 / _4 == _1]
+  implicitly[_9 / _3 == _3]
+
+  implicitly[_3 % _2 == _1]
+  implicitly[_8 % _3 == _2]
+  implicitly[_1 % _3 == _1]
 }

@@ -3,49 +3,32 @@ package extensible
 import org.scalatest.FunSpec
 
 class EffSpec extends FunSpec {
-
   describe("Eff") {
-    it("is Tree") {
-      type U = Tree :+: Void
-      implicit val m = Member[Tree, U]
-      val r = for {
-        x <- node(leaf(0), node(leaf(1), leaf(2)))
-        y <- node(leaf(x), leaf(x))
-      } yield y + 1
-      assert(Eff.run(str(r)) == "((1, 1), ((2, 2), (3, 3)))")
+    it("is Writer") {
+      def e1[R[_]](implicit w: Member[Writer, R]) = for {
+        _ <- tell("hello, ")
+        _ <- tell("world.")
+      } yield 0
+      assert(Eff.run(Writer.run(e1)) == ("hello, world.", 0))
     }
+
     it("is Maybe") {
-      type U = Maybe :+: Void
-      implicit val m = Member[Maybe, U]
-      val e1 = for {
-        x <- just(2)
-        y <- just(3)
+      def e2[R[_]](implicit m: Member[Maybe, R]) = for {
+        x <- some(2)
+        y <- none[R, Int]
       } yield x + y
-      assert(Eff.run(maybe(e1)(-1)) == 5)
-      val e2 = for {
-        x <- just(2)
-        y <- nothing[U, Int]
-      } yield x + y
-      assert(Eff.run(maybe(e2)(-1)) == -1)
+      assert(Eff.run(Maybe.run(-1)(e2)) == -1)
     }
-    it("is Tree and Maybe") {
-      def e1[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
+
+    it("is Writer and Maybe") {
+      def e3[R[_]](implicit w: Member[Writer, R], m: Member[Maybe, R]) =
         for {
-          x <- just(0)
-          y <- just(1)
-          z <- node(leaf(x), leaf(y))
-        } yield z + 1
-      assert(Eff.run(maybe(str(e1[Tree :+: Maybe :+: Void]))("fail")) == "(1, 2)")
-      def e2[U <: Union](implicit t: Member[Tree, U], m: Member[Maybe, U]): Eff[U, Int] =
-        for {
-          x <- just(0)
-          y <- nothing[U, Int]
-          z <- node(leaf(x), leaf(y))
-        } yield z + 1
-      assert(Eff.run(maybe(str(e2[Tree :+: Maybe :+: Void]))("fail")) == "fail")
-      assert(Eff.run(str(maybe(e2[Maybe :+: Tree :+: Void])(-1))) == "-1")
-      assert(Eff.run(str(maybe(e1[Maybe :+: Tree :+: Void])(-1))) == "(1, 2)")
+          _ <- tell("hello, ")
+          _ <- none[R, Unit]
+          _ <- tell("world.")
+        } yield 0
+      assert(Eff.run(Writer.run(Maybe.run(-1)(e3))) == ("hello, ", -1))
+      assert(Eff.run(Maybe.run(("fail", -1))(Writer.run(e3))) == ("fail", -1))
     }
   }
-
 }
