@@ -55,14 +55,7 @@ package object extensible {
 
   assert(Eff.run(Writer.run(Maybe.run(-1)(e3))) == ("hello, ", -1))
 
-  def e4[R[_]](implicit w: Member[Writer, R], m: Member[Maybe, R]) =
-    for {
-      _ <- tell("hello, ")
-      _ <- none[R, Unit]
-      _ <- tell("world.")
-    } yield 0
-
-  assert(Eff.run(Maybe.run(("fail", -1))(Writer.run(e4))) == ("fail", -1))
+  assert(Eff.run(Maybe.run(("fail", -1))(Writer.run(e3))) == ("fail", -1))
 
   /*
   val u2 = Member[Tree, Maybe :+: Tree :+: Void].inject((0, 1): Tree[Int])

@@ -70,7 +70,7 @@ Impure は副作用付きの計算を表し、Free に Functor `F` を再帰的�
 
 `flatMap` は Pure ならば関数に値を適用し、Impure ならば Functor を使って `F` の計算値に `f` を適用します。
 
-パラメータ `F` によって様々な再帰的なデータ構造を表現することができます。
+パラメータ `F` によって様々な再帰的データ構造を表現することができます。
 
 Free を使って二分木を表現してみましょう。
 
@@ -100,7 +100,7 @@ def leaf[A](a: A): Tree[A] = Pure(a)
 def node[A](x: Tree[A], y: Tree[A]): Tree[A] = Impure((x, y): Pair[Tree[A]])
 ```
 
-`leaf` は Pure で表現され、`node` は Tree を再帰的にもつ Impure で表現されます。
+`leaf` は Pure で表現され、`node` は Pair を使って Tree を再帰的にもつような Impure で表現されます。
 
 Pair が Functor のインスタンスであるため Tree はモナドになります。
 
@@ -117,7 +117,7 @@ assert(r == node(node(leaf(1), leaf(1)), node(node(leaf(2), leaf(2)), node(leaf(
 
 このように、Free は型パラメータ `F` に Functor を与えることで様々なモナドを表現することができます。
 
-例えば、我々が普段使っている List や Option、Either なども表現可能です。
+例えば、我々が普段使っている List や Option、Either なども表現することが可能です。
 
 ## Freer Monad
 
@@ -136,7 +136,7 @@ Coyoneda は任意の `F[_]` と始域 `A` と終域 `B` を型パラメータ�
 
 Coyoneda は `map` をもつため Functor のインスタンスになります。
 
-つまり、Free に Coyoneda の構造を加えることで、任意の `F` からモナドを構成できるようになります。
+つまり、Free に Coyoneda の構造を加えることで、任意の `F[_]` からモナドを構成できるようになります。
 
 これを Freer と呼び、以下のように定義されます。
 
@@ -156,7 +156,7 @@ case class Pure[F[_], A](a: A) extends Freer[F, A]
 case class Impure[F[_], A, B](fa: F[A], k: A => Freer[F, B]) extends Freer[F, B]
 ```
 
-Coyoneda を加えたことで Impure が始域の計算 `F[A]` とその継続の計算として `A => Freer[F, B]` をもつようになりました。
+Coyoneda を加えたことで Impure が始域の計算 `F[A]` と継続の計算 `A => Freer[F, B]` をもつようになりました。
 
 `flatMap` は Functor の制約がなくなり、Impure の場合に Freer モナドの元で関数の合成を行っています。これは Kleisli composition と呼ばれます。
 
@@ -169,7 +169,7 @@ object Freer {
 }
 ```
 
-Freer を使って Maybe (Option) を表現してみましょう。
+Freer を使って Maybe (Option) モナドを表現してみましょう。
 
 ```scala
 type ConstUnit[A] = Unit
@@ -184,6 +184,8 @@ def none[A]: Maybe[A] = Freer((): ConstUnit[Maybe[A]])
 Maybe は値を含まないかもしれない計算を表現します。
 
 値が存在する場合は `some` で、存在しない場合は `none` で Maybe を構築します。
+
+`some` は Pure で表現され、`none` は Unit をもつような Impure で表現されます。
 
 Maybe を使った簡単な例を示します。
 
@@ -200,7 +202,7 @@ Free と違って Functor のインスタンスを定義することなくモナ
 
 しかし、Freer は関数をデータ構造に持っているので単純な比較ができなくなりました。
 
-Maybe を実行する関数を定義して `r` の計算結果を確認します。
+Maybe モナドの計算をを実行する関数を定義して `r` の計算結果を確認します。
 
 ```scala
 def maybe[A](m: Maybe[A])(default: A): A = m match {
@@ -210,6 +212,8 @@ def maybe[A](m: Maybe[A])(default: A): A = m match {
 
 assert(maybe(r)(42) == 42)
 ```
+
+`maybe` は値が存在する場合は Maybe `m` がもつ値を返し、値が存在しない場合はデフォルト値 `default` を返します。
 
 このように、Freer は Free より簡単にモナドを得ることができます。
 
@@ -235,7 +239,7 @@ Pure に到達するまで再帰的に `flatMap` を呼び出しています。
 
 `((xs ++ ys) ++ zs)`
 
-`++` は左辺のリストの長さだけ走査が行われるので、左結合だと `++` の呼び出しのたびに連結したリストを再び走査することになります。
+`++` は左辺のリストの長さだけ走査が行われるので、演算子が左結合だと `++` の呼び出しのたびに連結したリストを再び走査することになります。
 
 この問題を改善するために新しいデータ構造を加えます。
 
@@ -344,7 +348,7 @@ Eff はこれらのモナドを組み合わせて使うことを可能にしま�
 
 ### Open Union
 
-Freer モナドに計算構造 `F` を与えることで様々なモナドを表現することができました。
+Freer モナドにデータ構造 `F` を与えることで様々なモナドを表現することができました。
 
 この `F` に複数の構造をもたせるため、型の和 Union を導入します。
 
@@ -360,9 +364,9 @@ sealed trait Void[A]
 
 Union は高階型パラメータ `F[_]`, `G[_]` とそれらに適用される型パラメータ `A` をとります。
 
-`Inl` は Union の型パラメータの左側の値 `F[A]` を、`Inr` は右側の値 `G[A]` を値にもちます。
+`Inl` は Union の型パラメータの左側の値 `F[A]` を、`Inr` は右側の値 `G[A]` をもちます。
 
-`Void` は Union で構成される型の和の終端を表します。
+`Void` は値が存在しない型を表現しており、Union で構成される型の和の終端に使われます。
 
 このまま複数の型を Union で繋げて型の和を作ることもできますが、とても冗長な記述になります。
 
@@ -372,7 +376,7 @@ Union は高階型パラメータ `F[_]`, `G[_]` とそれらに適用される�
 type :+:[F[_], G[_]] = { type R[A] = Union[F, G, A] }
 ```
 
-`:+:` は `F[_]` と `G[_]` をとりタイプメンバ `type R[A] = Union[F, G, A]` をもつ構造型を返します。
+`:+:` は `F` と `G` をとり、タイプメンバ `type R[A] = Union[F, G, A]` をもつ構造型を返します。
 
 これにより、中置記法を用いて Union の値を次のように作ることができます。
 
@@ -455,7 +459,7 @@ object Eff {
 }
 ```
 
-Member の制約を使って副作用付きの計算 `F` をエフェクトスタック `R` に埋め込むことで `F[A]` から `Eff[R, A]` を作ります。
+`apply` は Member の制約を使って副作用付きの計算 `F` をエフェクトスタック `R` に埋め込むことで `F[A]` から `Eff[R, A]` を作ります。
 
 これらを用いて Writer モナドを定義してみましょう。
 
@@ -468,7 +472,7 @@ for {
 } yield 0
 ```
 
-例えばこのような式は `("hello, world.", 0)` のような値を返します。
+例えばこのような計算は 0 という計算値と "hello, world." のような出力値を返します。
 
 Writer は次のような構造をもちます。
 
@@ -486,11 +490,11 @@ Writer は計算値 `A` を型パラメータにもちます。
 
 `Tell` は出力 `value` を値にもち、`Writer[Unit]` を継承します。
 
-これは `Tell` という構造が計算値 `Unit` を返すことを意味します。
+これは `Tell` というデータ構造が計算値 `Unit` を返すことを意味します。
 
-`tell` は `value` を出力するメソッドで、エフェクトスタック `R` が Writer を含む制約を Member で表現しています。
+`tell` は `value` を出力するようなメソッドで、エフェクトスタック `R` が Writer を含む制約を Member で表現しています。
 
-次はこの Writer を含む Eff を実行して出力値と計算値をとりだすハンドラを記述します。
+次はこの Writer を含む Eff モナドを実行して出力値と計算値をとりだすハンドラを記述します。
 
 ```scala
 object Writer {
@@ -503,25 +507,23 @@ object Writer {
 }
 ```
 
-1行ずつ見ていきましょう。
+`Writer.run` はエフェクトスタックの先頭に Writer を含む Eff を受け取り、エフェクトスタックから Writer を取り除いて出力値と計算値のペアである `(String, A)` をもつ Eff を返します。
 
-`Writer.run` はエフェクトスタックの先頭に Writer を含む Eff を受け取り、エフェクトスタックから Writer を取り除いて実行結果 `(String, A)` をもつ Eff を返します。
-
-`eff` が Pure の場合は空の出力 `""` と計算値 `a` のペアで結果を返します。
+`eff` が Pure の場合は空の出力値 `""` と計算値 `a` のペアで結果を返します。
 
 `eff` が Impure でかつ Inl の場合、つまり Writer のエフェクトが含まれるとき Writer の唯一のインスタンスである `Tell` にマッチします。
 
-Tell は `Writer[Unit]` を継承するので、継続 `k` に渡せる計算値は `Unit` に固定されます。
+Tell は `Writer[Unit]` を継承するので、継続 `k` に渡せる計算値は `Unit` に限定されます。
 
-継続 `k` を実行した結果を `run` で再帰的に実行し、その最終的な計算結果に対して `map` を使って出力値 `v` を加えます。
+継続 `k` の結果を `run` で再帰的に実行し、その最終的な計算結果に対して `map` を使って出力値 `v` を加えます。
 
 `eff` が Impure でかつ Inr の場合、つまり Writer 以外のエフェクト `r` のとき Impure でそのまま返します。
 
-このとき、Impure の継続 `k` を `run` で再帰的に実行します。
+このとき、継続 `k` の結果を `run` で再帰的に実行します。
 
 このハンドラの定義はある程度パターン化されているので、型を合わせることで自然に定義することが可能です。
 
-Eff のエフェクトスタック `R` は漸減し、最終的に Void になります。
+Eff のエフェクトスタック `R` は実行することで漸減し、最終的に Void になります。
 
 Eff から値を取り出す関数は次のように定義されます。
 
@@ -577,7 +579,7 @@ object Maybe {
 
 `eff` が Impure で Inl をもつならば、継続を実行せずにデフォルト値を返します。
 
-`eff` が Impure で Inr をもつならば、その継続 `k` を `run` で再帰的に実行します。
+`eff` が Impure で Inr をもつならば、継続 `k` の結果を `run` で再帰的に実行します。
 
 Eff で表現された Maybe モナドは次のように利用することができます。
 
@@ -607,29 +609,22 @@ assert(Eff.run(Writer.run(Maybe.run(-1)(e3))) == ("hello, ", -1))
 
 `e3` は Writer モナドと Maybe モナドが混在しています。
 
-これをエフェクトスタック `Maybe :+: Writer :+: Void` で実行すると、最初の `tell` は成功しますが、次の `tell` は `none` により継続が破棄されています。
+これをエフェクトスタック `Maybe :+: Writer :+: Void` で実行すると、最初の `tell` は成功しますが、次の `tell` は `none` により継続が破棄されます。
 
-エフェクトの実行順序は自由に変えることができます。
+Eff ではエフェクトの実行順序を自由に変えることができます。
 
 ```scala
-def e4[R[_]](implicit w: Member[Writer, R], m: Member[Maybe, R]) =
-  for {
-    _ <- tell("hello, ")
-    _ <- none[R, Unit]
-    _ <- tell("world.")
-  } yield 0
-
-assert(Eff.run(Maybe.run(("fail", -1))(Writer.run(e4))) == ("fail", -1))
+assert(Eff.run(Maybe.run(("fail", -1))(Writer.run(e3))) == ("fail", -1))
 ```
 
-`e3` が Maybe から Writer の順で実行していたのに対し、`e4` は Writer から実行しています。
+こんどはエフェクトスタック `Writer :+: Maybe :+: Void` で実行しています。
 
 Maybe が最後に実行されることで全体の結果がデフォルト値になります。
 
 ここまでで Eff についてまとめると次のようになります。
 
 * 様々なモナドを表現できる
-* 複数の作用を混在させることが可能
+* 複数のモナドを混合することが可能
 * モナドの合成が高速
 * モナドの実行順序を自由に決められる
 
